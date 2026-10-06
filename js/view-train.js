@@ -2,9 +2,9 @@
 'use strict';
 function statusChip(s) {
   const st = sessStatus(s);
-  if (st === 'done') return '<span class="chip ok">Done</span>';
+  if (st === 'done') return sessBadge(s);
   if (st === 'skipped') return '<span class="chip">Skipped</span>';
-  if (S.active && S.active.sessionKey === s.key) return '<span class="chip grad">In progress</span>';
+  if (S.active && S.active.sessionKey === s.key) return sessBadge(s);
   return '';
 }
 VIEWS.train = function () {
@@ -21,7 +21,7 @@ VIEWS.train = function () {
       if (!dp.sessions.length) h += `<div class="small dim">Rest</div>`;
       dp.sessions.forEach(s => {
         const st = sessStatus(s), canAct = st === 'todo' && k >= t;
-        h += `<div class="wks ${st}"><div class="row" style="gap:8px"><span class="dot c-${s.color}"></span><span class="grow wkt">${esc(s.title)}${s.movedFrom ? ` <span class="xs" style="color:var(--swim)">↪ from ${DOW[dow(s.movedFrom)]}</span>` : ''}</span>${statusChip(s)}</div>${s.kind !== 'test' ? `<div class="row wkact">${st === 'done' ? '' : canAct || k === t ? `<button class="tap" data-a="start" data-day="${k}" data-key="${s.key}">Start</button>` : ''}${st !== 'done' ? `<button class="tap" data-a="moveSheet" data-key="${s.key}">Move</button>` : ''}${st === 'skipped' ? `<button class="tap" data-a="unskip" data-key="${s.key}">Unskip</button>` : st === 'todo' ? `<button class="tap" data-a="skip" data-key="${s.key}">Skip</button>` : ''}${s.movedFrom && st !== 'done' ? `<button class="tap" data-a="unmove" data-key="${s.key}">Undo move</button>` : ''}</div>` : `<div class="row wkact"><button class="tap" data-a="testSheet" data-key="${s.testKey}">Results</button></div>`}</div>`;
+        h += `<div class="wks ${st}"><div class="row" style="gap:8px"><span class="dot c-${s.color}"></span><span class="grow wkt">${esc(s.title)}${s.movedFrom ? ` <span class="xs" style="color:var(--swim)">↪ from ${DOW[dow(s.movedFrom)]}</span>` : ''}</span>${statusChip(s)}</div>${s.kind !== 'test' ? `<div class="row wkact">${st === 'done' ? (s.kind === 'cardio' ? `<button class="tap" data-a="cardioDetails" data-id="${sessionDone(s.key).id}">Details</button>` : `<button class="tap" data-a="viewSummary" data-id="${sessionDone(s.key).id}">Summary</button>`) : s.kind === 'cardio' && st === 'todo' && k <= t ? `<button class="tap mdone" data-a="quickDone" data-day="${k}" data-key="${s.key}">Mark done ✓</button>` : ''}${st === 'done' ? '' : canAct || k === t ? `<button class="tap" data-a="${S.active && S.active.sessionKey === s.key ? 'resume' : 'start'}" data-day="${k}" data-key="${s.key}">${S.active && S.active.sessionKey === s.key ? 'Resume' : s.kind === 'cardio' ? 'Log' : 'Start'}</button>` : ''}${st !== 'done' ? `<button class="tap" data-a="moveSheet" data-key="${s.key}">Move</button>` : ''}${st === 'skipped' ? `<button class="tap" data-a="unskip" data-key="${s.key}">Unskip</button>` : st === 'todo' ? `<button class="tap" data-a="skip" data-key="${s.key}">Skip</button>` : ''}${s.movedFrom && st !== 'done' ? `<button class="tap" data-a="unmove" data-key="${s.key}">Undo move</button>` : ''}</div>` : `<div class="row wkact"><button class="tap" data-a="testSheet" data-key="${s.testKey}">Results</button></div>`}</div>`;
       });
       if (k >= t) h += `<button class="xs dim offbtn tap" data-a="toggleOff" data-day="${k}">${dp.off ? 'Clear day off' : '+ Mark day off'}</button>`;
     }

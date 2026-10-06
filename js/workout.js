@@ -45,7 +45,9 @@ function renderWorkout() {
     const ex = EX[e.ex], all = !e.skipped && e.sets.length && e.sets.every(s => s.done), next = w.exercises[ei + 1];
     const isHold = ex.kind === 'hold', isPow = ex.kind === 'power', bj = e.ex === 'broad_jump';
     const pres = e.role === 'main' ? `Top set + back-offs · ${e.reps[0]}–${e.reps[1]} reps` : isPow ? `${e.planned} × ${e.reps[0]} explosive` : isHold ? `${e.planned} × ${e.reps[0]}–${e.reps[1]} s/side` : `${e.planned} hard set${e.planned > 1 ? 's' : ''} · ${e.reps[0]}–${e.reps[1]} reps`;
-    h += `<div class="card excard ${all ? 'complete' : ''} ${e.skipped ? 'exskip' : ''}" id="ex-${ei}" data-ex="${e.ex}">${e.ss ? `<div class="ss-tag" style="margin-bottom:6px">${e.ss} ${next && next.ss === e.ss ? 'A · then straight to B' : 'B'}</div>` : ''}<div class="exh"><div class="exthumb ${e.role === 'main' ? 'main' : ''}">${all ? '✓' : ei + 1}</div><div class="grow"><div class="exn">${esc(ex.n)}</div><div class="ext">${pres} · ${ex.m}${ex.kf ? ' · <span style="color:var(--ok)">knee-friendly</span>' : ''}</div></div><button class="icon-btn tap" data-a="swap" data-ei="${ei}" aria-label="Swap exercise" title="Swap">⇄</button></div>`;
+    const xk = w.id + ':' + ei, open = !all || UI.exOpen === xk, dn = e.sets.filter(x => x.done).length;
+    h += `<div class="card excard ${all ? 'complete' : ''} ${all && !open ? 'collapsed' : ''} ${e.skipped ? 'exskip' : ''}" id="ex-${ei}" data-ex="${e.ex}">${e.ss && open ? `<div class="ss-tag" style="margin-bottom:6px">${e.ss} ${next && next.ss === e.ss ? 'A · then straight to B' : 'B'}</div>` : ''}<div class="exh"><div class="exthumb ${e.role === 'main' ? 'main' : ''}">${ei + 1}</div><div class="grow ${all ? 'tap' : ''}" ${all ? `data-a="exToggle" data-ei="${ei}"` : ''}><div class="exn">${esc(ex.n)}</div><div class="ext">${all && !open ? `<span style="color:var(--ok)">${dn} set${dn === 1 ? '' : 's'} ✓</span> · ${esc(fmtSetsShort(e))} · <u>edit</u>` : `${pres} · ${ex.m}${ex.kf ? ' · <span style="color:var(--ok)">knee-friendly</span>' : ''}`}</div></div>${open && !e.skipped ? `<button class="icon-btn tap" data-a="swap" data-ei="${ei}" aria-label="Swap exercise" title="Swap">⇄</button>` : ''}${e.skipped ? '' : `<button class="exchk tap ${all ? 'on' : dn ? 'part' : ''}" data-a="exDone" data-ei="${ei}" aria-label="${all ? 'Uncheck all sets' : 'Check all remaining sets'}" title="${all ? 'Uncheck all' : 'Check all sets'}">${CHECK}${!all && dn ? `<i>${dn}/${e.sets.length}</i>` : ''}</button>`}</div>`;
+    if (all && !open) { h += `</div>`; return; }
     if (e.skipped) { h += `<div class="row between" style="margin-top:10px"><span class="small muted">Skipped today — target carries over unchanged.</span><button class="btn sm sec tap" data-a="skipEx" data-ei="${ei}">Unskip</button></div></div>`; return; }
     h += `<div class="small dim" style="margin-top:8px">${esc(ex.cue)}</div>${e.note ? `<div class="sugg">🎯 <span>${esc(e.note)}</span></div>` : ''}<div class="sets"><div class="sethead"><span>Set</span><span style="text-align:center">${isHold ? '—' : bj ? 'Dist in' : (ex.added ? '+' : '') + wu()}</span><span style="text-align:center">${isHold ? 'Sec' : 'Reps'}</span><span style="text-align:center">RPE</span><span></span></div>`;
     e.sets.forEach((s, si) => {
@@ -157,21 +159,47 @@ ACT.start = (el, d) => startSession(d.day, d.key);
 ACT.resume = () => openWorkout();
 ACT.minimize = () => { closeWorkout(); render(); toast('Workout saved — tap Resume anytime'); };
 ACT.discard = () => { if (confirm('Discard this workout? Logged sets will be lost.')) { S.active = null; save(); closeWorkout(); render(); toast('Workout discarded'); } };
+function fmtSetsShort(e) { const x = EX[e.ex]; return e.sets.filter(s => s.done).map(s => x.kind === 'hold' ? s.r + 's' : x.added && !s.w ? 'BW×' + s.r : s.w == null ? s.r + ' reps' : U.wOut(s.w) + '×' + s.r).join(' · '); }
+// fill empty fields from the target / plan so one tap logs "did what was planned"
+function autofillSet(e, s, si) {
+  const ex = EX[e.ex], t = e.target;
+  if (s.r == null) s.r = t && t.reps && t.reps.length ? t.reps[Math.min(si, t.reps.length - 1)] : e.reps[0];
+  if (s.w == null) {
+    if (ex.added) s.w = (t && t.w) || 0;
+    else if (ex.kind === 'w') {
+      let w = t && t.w != null ? (s.tag === 'Back-off' ? roundLoad(t.w * 0.9) : t.w) : null;
+      if (w == null) { const prev = e.sets.slice(0, si).reverse().find(o => o.w != null) || e.sets.find(o => o.w != null); if (prev) w = s.tag === 'Back-off' && prev.tag === 'Top' ? roundLoad(prev.w * 0.9) : prev.w; }
+      if (w == null) return false; // no plan/target weight to use — first-ever session needs a load
+      s.w = w;
+    }
+  }
+  return true;
+}
+function restFor(w, ei) { const e = w.exercises[ei], ex = EX[e.ex], nx = w.exercises[ei + 1], nextSS = e.ss && nx && nx.ss === e.ss; return { sec: nextSS ? 20 : e.role === 'main' ? S.settings.rest.main : ex.kind === 'power' ? 120 : ex.kind === 'hold' ? 60 : S.settings.rest.acc, nextSS }; }
 ACT.setDone = (el, d) => {
-  const w = S.active, e = w.exercises[+d.ei], s = e.sets[+d.si], ex = EX[e.ex];
+  const w = S.active, ei = +d.ei, e = w.exercises[ei], s = e.sets[+d.si], ex = EX[e.ex];
   if (!s.done) {
-    const focus = f => { const ip = document.querySelector(`[data-f="${f}"][data-ei="${d.ei}"][data-si="${d.si}"]`); if (ip) ip.focus(); };
-    if (s.r == null) { focus('r'); toast(ex.kind === 'hold' ? 'Enter seconds first' : 'Enter reps first'); return; }
-    if (ex.kind === 'w' && s.w == null && !ex.added) { focus('w'); toast('Enter the load first'); return; }
-    if (ex.added && s.w == null) s.w = 0;
+    if (!autofillSet(e, s, +d.si)) { const ip = document.querySelector(`[data-f="w"][data-ei="${d.ei}"][data-si="${d.si}"]`); if (ip) ip.focus(); toast('First time on this lift — enter the load, then ✓'); return; }
     s.done = true; haptic(18);
     if (s.tag === 'Top' && s.w) e.sets.forEach(o => { if (o.tag === 'Back-off' && !o.done) o.w = roundLoad(s.w * 0.9); });
-    const nx = w.exercises[+d.ei + 1], nextSS = e.ss && nx && nx.ss === e.ss;
-    startRest(nextSS ? 20 : e.role === 'main' ? S.settings.rest.main : ex.kind === 'power' ? 120 : ex.kind === 'hold' ? 60 : S.settings.rest.acc);
-    if (e.sets.every(x => x.done)) toast(nextSS ? 'Superset → straight to B' : `${ex.n} ✓`);
+    const r = restFor(w, ei); startRest(r.sec);
+    if (e.sets.every(x => x.done)) { UI.exOpen = null; toast(r.nextSS ? 'Superset → straight to B' : `${ex.n} ✓`); }
   } else { s.done = false; haptic(); }
   save(); rerenderWk();
 };
+let UNDO_EX = null;
+ACT.exDone = (el, d) => {
+  const w = S.active, ei = +d.ei, e = w.exercises[ei], ex = EX[e.ex];
+  if (e.sets.length && e.sets.every(x => x.done)) { UNDO_EX = { ei, sets: JSON.parse(JSON.stringify(e.sets)) }; e.sets.forEach(x => x.done = false); UI.exOpen = w.id + ':' + ei; save(); haptic(); rerenderWk(); toast(`${ex.n} unchecked`, 'undoEx'); return; }
+  for (let i = 0; i < e.sets.length; i++) {
+    const s = e.sets[i]; if (s.done) continue;
+    if (!autofillSet(e, s, i)) { save(); rerenderWk(); const ip = document.querySelector(`[data-f="w"][data-ei="${ei}"][data-si="${i}"]`); if (ip) ip.focus(); toast('First time on this lift — enter the load, then ✓'); return; }
+    s.done = true; if (s.tag === 'Top' && s.w) e.sets.forEach(o => { if (o.tag === 'Back-off' && !o.done && o.w == null) o.w = roundLoad(s.w * 0.9); });
+  }
+  UI.exOpen = null; haptic([15, 30, 15]); startRest(restFor(w, ei).sec); save(); rerenderWk(); toast(`${ex.n} ✓ all sets`);
+};
+ACT.undoEx = () => { if (!UNDO_EX || !S.active) return; const e = S.active.exercises[UNDO_EX.ei]; if (e) e.sets = UNDO_EX.sets; UNDO_EX = null; UI.exOpen = null; save(); rerenderWk(); };
+ACT.exToggle = (el, d) => { const k = S.active.id + ':' + d.ei; UI.exOpen = UI.exOpen === k ? null : k; haptic(); rerenderWk(); };
 ACT.addSet = (el, d) => { const e = S.active.exercises[+d.ei], l = e.sets[e.sets.length - 1] || { tag: 'Hard', rpeT: '9–10' }; e.sets.push({ tag: l.tag === 'Top' ? 'Back-off' : l.tag, rpeT: l.tag === 'Top' ? '8–9' : l.rpeT, w: l.w ?? null, r: l.r ?? null, rpe: null, done: false }); save(); haptic(); rerenderWk(); };
 ACT.rmSet = (el, d) => { const e = S.active.exercises[+d.ei]; if (e.sets.length > 1) e.sets.pop(); save(); haptic(); rerenderWk(); };
 ACT.skipEx = (el, d) => { const e = S.active.exercises[+d.ei]; e.skipped = !e.skipped; save(); haptic(); rerenderWk(); toast(e.skipped ? `Skipped ${EX[e.ex].n}` : 'Back in'); };
