@@ -79,7 +79,7 @@ VIEWS.today = function () {
     const m = day.meta, tot = diffDays(PLAN_START, PLAN_END) + 1, dn = diffDays(PLAN_START, k) + 1;
     h += `<div class="card" style="padding:14px 16px"><div class="row between"><div class="row wrap" style="gap:6px"><span class="chip grad">Block ${day.block.n} · ${day.block.name}</span><span class="chip">Week ${day.wk}</span>${m.deload ? '<span class="chip deload">Deload</span>' : ''}${m.test ? '<span class="chip test">Test week</span>' : ''}${m.finals ? '<span class="chip finals">Finals</span>' : ''}</div><div class="small dim">Day ${dn}/${tot}</div></div>${m.note ? `<div class="small muted" style="margin-top:10px">${esc(m.note)}</div>` : ''}<div class="pbar"><i style="width:${dn / tot * 100}%"></i></div></div>`;
   }
-  h += verseCard(k);
+  h += devoCard(k);
   if (!day) h += `<div class="card hero"><span class="chip grad">${k < PLAN_START ? 'Starts Oct 5' : 'Plan complete'}</span><div class="ttl">${k < PLAN_START ? 'Plan starts Monday, Oct 5' : '🏁 Program complete!'}</div></div>`;
   else {
     h += contextTips(k);

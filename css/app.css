@@ -365,3 +365,34 @@ a.chip{text-decoration:none} a.btn{text-decoration:none}
 .sring{display:inline-flex;align-items:center;gap:5px;position:relative} .sring b{font-size:12px;font-weight:800;color:var(--ok);font-variant-numeric:tabular-nums} .sring small{font-size:10px;color:var(--t2)}
 .btn.markdone{background:linear-gradient(135deg,#2EE6A6,#3DA9FC);color:#04110C;box-shadow:0 8px 24px rgba(46,230,166,.25)}
 .wkact button.mdone{color:#04110C;background:var(--ok);border-color:var(--ok)}
+/* devotional */
+.devocard{cursor:pointer}
+.devocard .dv-ttl{font-size:21px;font-weight:800;letter-spacing:-.01em;margin:10px 0 2px}
+.devocard blockquote{font-size:16px;margin:10px 0 6px}
+.overlay.devo{z-index:46}
+.dv-prog{position:sticky;top:calc(var(--sat) + 61px);z-index:5;height:3px;background:var(--line)} .dv-prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#FFC145,#FF7A3D);transition:width .15s}
+.dv-body{max-width:620px;margin:0 auto;padding:16px 18px calc(var(--sab) + 30px)}
+.dv-h1{font-size:30px;line-height:1.12;font-weight:850;letter-spacing:-.02em;margin:12px 0 6px}
+.dv-sec{margin:22px 0;padding-top:4px}
+.dv-lbl{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#FFC145;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.dv-fav{width:34px;height:34px;font-size:17px;color:var(--t2)} .dv-fav.fav{color:#FF4D7E}
+.dv-ref{font-weight:800;font-size:16px;margin-bottom:8px} .dv-ref small{color:var(--t3);font-weight:700;font-size:11px;margin-left:4px}
+.dv-pass{font-family:Georgia,"Times New Roman",serif;font-size:18.5px;line-height:1.62;color:#F3EBDD;margin-bottom:8px}
+.dv-pass sup{font-family:var(--font);font-size:10px;font-weight:800;color:#FFC145;margin:0 3px 0 2px;vertical-align:4px}
+.dv-read p{font-size:16.5px;line-height:1.68;color:#E4E4EA;margin:0 0 14px}
+.dv-sup{margin:0 0 12px;padding:12px 14px;border-left:3px solid #FFC145;background:rgba(255,193,69,.06);border-radius:0 12px 12px 0;font-family:Georgia,serif;font-size:16px;line-height:1.5;color:#F3EBDD}
+.dv-sup .vref{display:block;margin-top:6px;font-family:var(--font)}
+.dv-q{display:flex;gap:12px;margin-bottom:18px}
+.dv-qn{width:28px;height:28px;flex:none;border-radius:50%;background:rgba(255,193,69,.16);color:#FFC145;font-weight:800;display:grid;place-items:center;font-size:14px}
+.dv-qt{font-weight:700;font-size:16px;line-height:1.4;margin:3px 0 8px}
+.dv-j{height:auto;width:100%;min-height:84px;resize:vertical;line-height:1.45;padding:10px 12px}
+.dv-tbtn{margin-top:8px}
+.dv-talk{margin-top:8px} .dv-talk .bub{max-width:92%}
+.dv-tv{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-family:Georgia,serif;font-size:14.5px;color:#F3EBDD} .dv-tv span{display:block;font-family:var(--font);font-size:12px;font-weight:700;color:var(--bike);margin-top:4px}
+.dv-reply{gap:8px;margin-top:4px} .dv-reply .inp{flex:1}
+.dv-pr{font-family:Georgia,serif;font-style:italic;font-size:17px;line-height:1.6;color:#EDE6DA}
+.dv-carry{background:linear-gradient(135deg,rgba(255,193,69,.12),rgba(255,122,61,.08));border:1px solid rgba(255,193,69,.25);border-radius:var(--r);padding:14px 16px}
+.dv-act{font-size:17px;font-weight:750;line-height:1.4}
+.dv-donecard{display:flex;align-items:center;gap:12px;border-color:rgba(46,230,166,.3)}
+.dv-hrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 4px;border-bottom:1px solid var(--line)} .dv-hrow b{display:block;font-size:15px} .dv-hrow .xs{display:block;margin-top:2px}
+.dv-hdot{width:28px;height:28px;border-radius:50%;border:2px solid var(--line2);flex:none}

@@ -6,7 +6,7 @@ const DEFAULT_HABITS = [
   { id: 'creatine', label: 'Creatine', ic: '💊' }, { id: 'steps', label: '8k+ steps', ic: '👟' },
   { id: 'sleep', label: '8h sleep', ic: '😴' }, { id: 'water', label: 'Water', ic: '💧' },
   { id: 'noalc', label: 'No alcohol', ic: '🚫' }, { id: 'weigh', label: 'Weigh-in', ic: '⚖️' },
-  { id: 'bible', label: 'Read today’s verse', ic: '📖' },
+  { id: 'bible', label: 'Daily devotional', ic: '📖' },
 ];
 const STARTER_VIDEOS = [ // verified via YouTube oEmbed (200) — titles are the real oEmbed titles
   { vid: 'IdTMDpizis8', title: 'Jocko Willink "GOOD" (Official)', cat: 'Discipline', tags: 'jocko discipline motivation' },
@@ -27,6 +27,7 @@ function defaultState() {
     // v2
     food: { log: {}, custom: [], meals: {} },
     verse: { seen: [], favs: [], byDate: {}, order: null },
+    devo: { seen: [], byDate: {}, journal: {}, talk: {}, done: {}, time: {}, started: {}, favs: [], cycle: 1 },
     videos: STARTER_VIDEOS.map((v, i) => ({ id: 'sv' + i, ...v, added: Date.now() })),
     videoCats: ['Discipline', 'Hockey', 'Triathlon/Ironman', 'Faith'],
     schedule: { moves: {}, skips: {}, off: {} },
@@ -52,13 +53,15 @@ function migrate(raw) {
   out.profile.diet = Object.assign({}, DEFAULT_PROFILE.diet, (s.profile || {}).diet || {});
   out.food = Object.assign({ log: {}, custom: [], meals: {} }, s.food || {});
   out.verse = Object.assign({ seen: [], favs: [], byDate: {}, order: null }, s.verse || {});
+  out.devo = Object.assign(defaultState().devo, s.devo || {});
+  { const hb = out.settings.habits.find(h => h.id === 'bible'); if (hb && hb.label === 'Read today’s verse') hb.label = 'Daily devotional'; }
   out.schedule = Object.assign({ moves: {}, skips: {}, off: {} }, s.schedule || {});
   if (!Array.isArray(out.videos)) out.videos = defaultState().videos;
   if (!Array.isArray(out.videoCats)) out.videoCats = defaultState().videoCats;
   if (!s.v || s.v < 2) { // ---- v1 → v2
     (out.workouts || []).forEach(w => { w.sessionKey = migrateKey(w.sessionKey); (w.exercises || []).forEach(e => { if (e.planned == null) e.planned = e.sets.length; }); });
     if (out.active) out.active.sessionKey = migrateKey(out.active.sessionKey);
-    if (!out.settings.habits.find(h => h.id === 'bible')) out.settings.habits.push({ id: 'bible', label: 'Read today’s verse', ic: '📖' });
+    if (!out.settings.habits.find(h => h.id === 'bible')) out.settings.habits.push({ id: 'bible', label: 'Daily devotional', ic: '📖' });
     out.migratedFrom = 1;
   }
   out.v = 2;
