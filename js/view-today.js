@@ -75,13 +75,15 @@ function heatmap(sel) {
 VIEWS.today = function () {
   const k = today(), day = dayPlan(k), b = S.body[k] || {}, ft = foodTotals(k), prot = proteinFor(k), T = S.settings;
   let h = hdr(fmtLong(k), 'Today');
+  if (k >= PLAN_START) h += doNowCard(k) + nnBanner();
   if (S.active && (!day || !day.sessions.some(s => s.key === S.active.sessionKey))) h += `<div class="tip info"><div class="ic">⏱️</div><div class="grow">Workout in progress: <b>${esc(S.active.title)}</b><div style="margin-top:8px"><button class="btn sm tap" data-a="resume">Resume</button></div></div></div>`;
   h += scheduleBanners(k);
+  if (k >= PLAN_START) h += nnCard(k) + checkinCard(k);
+  let blockCard = '';
   if (day) {
     const m = day.meta, tot = diffDays(PLAN_START, PLAN_END) + 1, dn = diffDays(PLAN_START, k) + 1;
-    h += `<div class="card" style="padding:14px 16px"><div class="row between"><div class="row wrap" style="gap:6px"><span class="chip grad">Block ${day.block.n} · ${day.block.name}</span><span class="chip">Week ${day.wk}</span>${m.deload ? '<span class="chip deload">Deload</span>' : ''}${m.test ? '<span class="chip test">Test week</span>' : ''}${m.finals ? '<span class="chip finals">Finals</span>' : ''}</div><div class="small dim">Day ${dn}/${tot}</div></div>${m.note ? `<div class="small muted" style="margin-top:10px">${esc(m.note)}</div>` : ''}<div class="pbar"><i style="width:${dn / tot * 100}%"></i></div></div>`;
+    blockCard = `<div class="card" style="padding:14px 16px"><div class="row between"><div class="row wrap" style="gap:6px"><span class="chip grad">Block ${day.block.n} · ${day.block.name}</span><span class="chip">Week ${day.wk}</span>${m.deload ? '<span class="chip deload">Deload</span>' : ''}${m.test ? '<span class="chip test">Test week</span>' : ''}${m.finals ? '<span class="chip finals">Finals</span>' : ''}</div><div class="small dim">Day ${dn}/${tot}</div></div>${m.note ? `<div class="small muted" style="margin-top:10px">${esc(m.note)}</div>` : ''}<div class="pbar"><i style="width:${dn / tot * 100}%"></i></div></div>`;
   }
-  h += devoCard(k);
   if (!day) h += `<div class="card hero"><span class="chip grad">${k < PLAN_START ? 'Starts Oct 5' : 'Plan complete'}</span><div class="ttl">${k < PLAN_START ? 'Plan starts Monday, Oct 5' : '🏁 Program complete!'}</div></div>`;
   else {
     h += contextTips(k);
@@ -91,7 +93,8 @@ VIEWS.today = function () {
     if (!ss.length && !day.off) h += `<div class="card hero"><span class="chip">Rest day</span><div class="ttl">Recover 💤</div><div class="small muted">Sleep 8h+, hit protein, do the 10-min mobility routine. Recovery is when you adapt.</div></div>`;
     ss.forEach((s, i) => h += sessionCard(day, s, i === 0));
   }
-  h += `<h2 class="sec">Daily habits</h2>` + habitsCard();
+  h += devoCard(k) + blockCard;
+  h += `<h2 class="sec">All habits</h2>` + habitsCard();
   h += `<h2 class="sec">Fuel today <button class="btn sm sec tap" data-a="goTab" data-tab="food">Open Food</button></h2><div class="card"><div class="row between small"><span>Calories</span><b>${fmtNum(ft.kcal)} / ${fmtNum(T.kcal)}</b></div><div class="pbar"><i style="width:${Math.min(100, ft.kcal / T.kcal * 100)}%"></i></div><div class="row between small" style="margin-top:12px"><span>Protein</span><b>${prot} / ${T.protein} g</b></div><div class="pbar"><i class="pgreen" style="width:${Math.min(100, prot / T.protein * 100)}%"></i></div><div class="qadd" style="margin-top:12px"><button class="tap" data-a="quickProt" data-v="25">+25 g protein</button><button class="tap" data-a="quickProt" data-v="40">+40 g</button><button class="tap" data-a="quickProt" data-v="50">+50 g</button></div></div>`;
   h += `<h2 class="sec">Quick log</h2><div class="card"><div class="field"><label>Weight (${wu()})</label><div class="row"><input class="inp grow" id="q-weight" type="number" inputmode="decimal" step="0.1" placeholder="${esc(U.wOut(lastWeight()))}" value="${esc(U.wOut(b.weight))}"><button class="btn sm tap" style="height:48px" data-a="saveWeight">Save</button></div></div>${hasKnee(S.profile) || b.knee != null ? `<div class="field" style="margin-top:14px"><label>Knee pain (0–10) ${b.knee != null ? `· <span style="color:${painColor(b.knee)}">${b.knee}/10</span>` : ''}</label><div class="pain" id="q-knee">${[...Array(11)].map((_, i) => `<button class="tap ${b.knee === i ? 'on' : ''}" style="${b.knee === i ? `background:${painColor(i)}` : ''}" data-a="knee" data-v="${i}">${i}</button>`).join('')}</div></div>` : ''}</div>`;
   h += `<h2 class="sec">Daily 10-min mobility</h2><div class="card"><ul class="clean">${MOBILITY.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
