@@ -28,7 +28,11 @@ const EX = {
   skull_crusher:   { n: 'EZ-Bar Skull Crusher', m: 'Triceps', eq: 'EZ bar', cue: 'Bar to forehead/behind head, elbows in.' },
   // ---- Upper B
   flat_db_press:   { n: 'Flat DB Press', m: 'Chest', eq: 'Dumbbells', db: 1, cue: 'Big arch, DBs to chest line, press together.', alts: ['flat_bench', 'machine_chest'] },
-  flat_bench:      { n: 'Barbell Bench Press', m: 'Chest', eq: 'Barbell', cue: 'Leg drive, touch sternum, press back.' },
+  flat_bench:      { n: 'Barbell Bench Press', m: 'Chest', eq: 'Barbell', cue: 'Blades pinned, feet planted, bar to lower chest, leg drive, press back over the shoulders.', alts: ['paused_bench', 'close_grip_bench', 'flat_db_press', 'machine_chest'] },
+  paused_bench:    { n: 'Paused Bench Press (2-count)', m: 'Chest', eq: 'Barbell', cue: 'Full 2-count pause on the chest, stay tight, then drive. Technique over load.', alts: ['close_grip_bench', 'flat_db_press', 'machine_chest'] },
+  close_grip_bench:{ n: 'Close-Grip Bench Press', m: 'Chest/Triceps', eq: 'Barbell', cue: 'Hands just inside shoulder width, elbows tucked, touch lower chest.' },
+  jm_press:        { n: 'JM Press', m: 'Triceps', eq: 'Barbell/Smith', cue: 'Half skull-crusher, half close-grip: bar toward chin, elbows forward, press back. Lockout strength for bench.', alts: ['dips', 'pushdown', 'skull_crusher'] },
+  dips:            { n: 'Weighted Dip', m: 'Triceps/Chest', eq: 'Dip bars', added: 1, cue: 'Slight lean, shoulders down, only to a shoulder-comfortable depth. Log ADDED load.' },
   machine_chest:   { n: 'Machine Chest Press', m: 'Chest', eq: 'Machine', cue: 'Handles at mid-chest.' },
   lat_pulldown:    { n: 'Lat Pulldown', m: 'Back', eq: 'Cable', cue: 'Chest up, bar to upper chest, full stretch.', alts: ['single_pulldown', 'neutral_pullup'] },
   single_pulldown: { n: 'Single-Arm Pulldown', m: 'Back', eq: 'Cable', cue: 'Elbow to back pocket.' },
@@ -71,7 +75,7 @@ const EX = {
 };
 for (const id in EX) { EX[id].id = id; EX[id].kind = EX[id].kind || 'w'; }
 // knee-friendly alternatives for upper lifts = equipment swaps (no knee load anyway)
-['incline_db','machine_incline','neutral_pullup','machine_press','landmine_press','seal_row','machine_row','cable_lateral','machine_lateral','ez_curl','cable_curl','hammer_curl','skull_crusher','flat_bench','machine_chest','single_pulldown','pec_deck','db_fly','db_row','face_pull','db_rear_fly','pushdown','oh_triceps','lat_pulldown'].forEach(id => EX[id].kf = 1);
+['incline_db','machine_incline','neutral_pullup','machine_press','landmine_press','seal_row','machine_row','cable_lateral','machine_lateral','ez_curl','cable_curl','hammer_curl','skull_crusher','flat_bench','machine_chest','single_pulldown','pec_deck','db_fly','db_row','face_pull','db_rear_fly','pushdown','oh_triceps','lat_pulldown','paused_bench','close_grip_bench','jm_press','dips'].forEach(id => EX[id].kf = 1);
 
 function altsFor(exId) {
   // find the "family" — original whose alts include exId, or exId itself
@@ -81,13 +85,14 @@ function altsFor(exId) {
 
 /* ---------- aliases for the coach chat (word → exercise ids) ---------- */
 const EX_ALIASES = {
-  bench: ['incline_bench', 'flat_db_press', 'flat_bench', 'incline_db', 'machine_incline', 'machine_chest'], incline: ['incline_bench', 'incline_db', 'machine_incline'],
-  press: ['incline_bench', 'flat_db_press', 'seated_db_press'], chest: ['incline_bench', 'flat_db_press', 'cable_fly'],
+  bench: ['flat_bench', 'paused_bench', 'close_grip_bench', 'flat_db_press', 'incline_bench', 'incline_db', 'machine_incline', 'machine_chest'], incline: ['incline_bench', 'incline_db', 'machine_incline'],
+  paused: ['paused_bench'], pause: ['paused_bench'], closegrip: ['close_grip_bench'], cgbp: ['close_grip_bench'], jm: ['jm_press'], jmpress: ['jm_press'], dip: ['dips'], face: ['face_pull'],
+  press: ['flat_bench', 'seated_db_press', 'flat_db_press', 'jm_press', 'incline_bench'], chest: ['flat_bench', 'paused_bench', 'incline_bench', 'flat_db_press', 'cable_fly'],
   pullup: ['weighted_pullup', 'neutral_pullup'], chin: ['weighted_pullup', 'neutral_pullup'], pulldown: ['lat_pulldown', 'single_pulldown'], lat: ['lat_pulldown'],
   shoulder: ['seated_db_press', 'machine_press', 'landmine_press'], ohp: ['seated_db_press', 'machine_press'],
   row: ['cs_row', 'cable_row', 'seal_row', 'machine_row', 'db_row'], lateral: ['lateral_raise', 'cable_lateral', 'machine_lateral'], raise: ['lateral_raise'],
   curl: ['db_curl', 'ez_curl', 'cable_curl', 'hammer_curl'], bicep: ['db_curl', 'ez_curl', 'cable_curl', 'hammer_curl'],
-  tricep: ['oh_triceps', 'pushdown', 'skull_crusher', 'oh_db_ext'], pushdown: ['pushdown'], extension: ['oh_triceps', 'oh_db_ext'],
+  tricep: ['oh_triceps', 'pushdown', 'skull_crusher', 'oh_db_ext', 'jm_press', 'dips'], pushdown: ['pushdown'], extension: ['oh_triceps', 'oh_db_ext'],
   fly: ['cable_fly', 'pec_deck', 'db_fly'], flye: ['cable_fly', 'pec_deck', 'db_fly'], rear: ['rear_delt_fly', 'face_pull', 'db_rear_fly'], facepull: ['face_pull'],
   jump: ['broad_jump'], broad: ['broad_jump'], medball: ['medball_throw'], throw: ['medball_throw'], swing: ['kb_swing'],
   rdl: ['rdl', 'db_rdl', 'trap_rdl'], deadlift: ['rdl', 'db_rdl', 'trap_rdl'], hinge: ['rdl'],
@@ -98,26 +103,33 @@ const EX_ALIASES = {
 };
 
 /* roles: main = 1 top set @RPE9 + back-offs ~10% lighter; acc = 2 hard sets @RPE9–10
-   pri: 1 = never trimmed, 2 = kept at ≥45 min, 3 = kept at ≥60 min */
+   bench = heavy bench: (Sharpen: heavy single) + 1 top set by phase + 2–3 back-offs −10%; tech = 3 × 5–6 @RPE 7–8 technique sets
+   pri: 1 = never trimmed, 2 = kept at ≥45 min, 3 = kept at ≥60 min. v2.2: bench is the first lift on both upper days. */
+const BENCH_PHASE = {
+  base:    { key: 'base', name: 'Base', reps: [5, 6], top: '8–9', bo: 3, desc: 'top set ~5 @RPE 8–9 + 3 back-offs −10%' },
+  build:   { key: 'build', name: 'Build', reps: [3, 4], top: '8–9', bo: 3, desc: 'top set 3–4 @RPE 8–9 + 3 back-offs −10%' },
+  sharpen: { key: 'sharpen', name: 'Sharpen', reps: [2, 3], top: '9', bo: 2, single: true, desc: 'heavy single @RPE 8, top set 2–3 @RPE 9 + 2 back-offs −10%' },
+};
+function benchPhase(k) { const b = blockFor(k || PLAN_START) || (k > PLAN_END ? BLOCKS[3] : BLOCKS[0]); return b.n === 1 ? BENCH_PHASE.base : b.n === 2 ? BENCH_PHASE.build : BENCH_PHASE.sharpen; }
+function slotReps(slot, k) { return slot.role === 'bench' ? benchPhase(k).reps : slot.reps; }
+const modFor = k => inPlan(k) ? liftMod(weekNum(k)) : 'normal';
 const TEMPLATES = {
   upperA: {
-    title: 'Upper A', icon: 'U', color: 'lift', focus: 'Chest · Back · Shoulders · Arms', est: 60,
+    title: 'Upper A', icon: 'U', color: 'lift', focus: 'Heavy bench · Back · Triceps · Delts', est: 60,
     slots: [
-      { id: 'ua1', ex: 'incline_bench', role: 'main', reps: [4, 6], pri: 1 },
+      { id: 'uab', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
       { id: 'ua2', ex: 'weighted_pullup', role: 'main', reps: [4, 6], pri: 1 },
-      { id: 'ua3', ex: 'seated_db_press', role: 'acc', reps: [6, 8], pri: 2 },
       { id: 'ua4', ex: 'cs_row', role: 'acc', reps: [6, 8], pri: 2 },
+      { id: 'uat', ex: 'jm_press', role: 'acc', reps: [6, 10], ss: 'Superset', pri: 2 },
+      { id: 'uaf', ex: 'face_pull', role: 'acc', reps: [10, 15], ss: 'Superset', pri: 2 },
       { id: 'ua5', ex: 'lateral_raise', role: 'acc', reps: [8, 12], pri: 3 },
-      { id: 'ua6', ex: 'db_curl', role: 'acc', reps: [6, 10], ss: 'Superset', pri: 3 },
-      { id: 'ua7', ex: 'oh_triceps', role: 'acc', reps: [6, 10], ss: 'Superset', pri: 3 },
     ],
   },
   upperB: {
-    title: 'Upper B', icon: 'U', color: 'lift', focus: 'Chest · Back · Delts · Arms + easy bike', est: 60,
+    title: 'Upper B', icon: 'U', color: 'lift', focus: 'Bench technique · Back · Delts · Arms + easy bike', est: 60,
     slots: [
-      { id: 'ub1', ex: 'flat_db_press', role: 'main', reps: [6, 8], pri: 1 },
+      { id: 'ubp', ex: 'paused_bench', role: 'tech', reps: [5, 6], pri: 1 },
       { id: 'ub2', ex: 'lat_pulldown', role: 'main', reps: [6, 10], pri: 1 },
-      { id: 'ub3', ex: 'cable_fly', role: 'acc', reps: [8, 12], pri: 3 },
       { id: 'ub4', ex: 'cable_row', role: 'acc', reps: [8, 10], pri: 2 },
       { id: 'ub5', ex: 'lateral_raise', role: 'acc', reps: [10, 15], pri: 2 },
       { id: 'ub6', ex: 'rear_delt_fly', role: 'acc', reps: [10, 15], pri: 3 },
@@ -153,8 +165,8 @@ const KNEE_RULES = [
 const SLIP_RULE = 'If things slip: protect Upper A, Upper B, Lower + Power and 1 cardio session.';
 
 const WHY = {
-  UA: 'Compound presses and pulls go first while you’re fresh. One all-out top set at RPE 9 is the biggest strength signal per minute; back-offs 10% lighter add quality volume without junk fatigue. Double progression guarantees overload.',
-  UB: 'Hitting each muscle ~2×/week beats once a week for growth. Slightly higher reps here balance Monday’s heavy work, and the easy spin adds calorie burn without leg fatigue.',
+  UA: 'Heavy bench goes first while you’re fresh — getting stronger is now an explicit goal. One heavy top set (Base ~5 reps, Build 3–4, Sharpen 2–3 plus a heavy single) is the biggest strength signal per minute; 2–3 back-offs at −10% add quality practice without junk volume. Rows, pull-ups and face pulls build the upper-back shelf you press from and keep shoulders healthy; JM press trains lockout. On a cut, expect modest bench gains — protein ≥190 g protects them.',
+  UB: 'Second bench day of the week: paused bench at RPE 7–8 grooves a tight, consistent bottom position and adds technique volume without beating you up before Monday’s heavy day. Back and delt work balances the pressing, and the easy spin adds calorie burn without leg fatigue.',
   LOW: 'Jumps come first because power needs fresh, fast muscle fibers. Then hinge and knee-friendly leg work in low reps with hard effort — strength without high-rep patellar stress.',
   RUN: 'Easy, conversational running builds the aerobic base (more mitochondria and capillaries) with low injury risk. Core work stabilizes hips and knees for hockey.',
   STRIDES: 'Strides teach fast, relaxed mechanics with almost no fatigue — the one new impact stressor this week.',
@@ -188,19 +200,20 @@ const TEST_FIELDS = [
   { id: 'mile', label: '1-mile run', unit: 'time', better: 'down' },
   { id: 'swim100', label: '100 yd swim', unit: 'time', better: 'down' },
   { id: 'pullups', label: 'Max strict pull-ups', unit: 'reps', better: 'up' },
+  { id: 'bench', label: 'Bench e1RM (AMRAP @ ~85%)', unit: 'w', better: 'up' },
   { id: 'broad', label: 'Broad jump', unit: 'len', better: 'up' },
 ];
 
 /* ---------- profile (onboarding answers) ---------- */
 const DEFAULT_PROFILE = {
-  style: 'hybrid', goals: ['fatloss', 'muscle', 'endurance', 'explosive', 'hockey'], primary: 'fatloss',
+  style: 'hybrid', goals: ['fatloss', 'strength', 'muscle', 'endurance', 'explosive', 'hockey'], primary: 'fatloss',
   heightIn: 74, weight: 210, goalWeight: 200, age: 21, sex: 'male', sleep: 8,
   gym: 'full', pool: true, poolName: 'UREC pool', bike: 'mix',
   days: 7, sessionMin: 60, time: 'midday', intensity: 'intensity',
   injuries: { aclL: true, aclR: true, patella: true, flare: false, other: '' },
   diet: { approach: 'rules', meals: 4, pref: 'omnivore', alcohol: 1, flex: 1 },
 };
-const GOAL_LABEL = { fatloss: 'Fat loss', muscle: 'Build muscle', endurance: 'Endurance', explosive: 'Explosiveness', hockey: 'Hockey' };
+const GOAL_LABEL = { fatloss: 'Fat loss', strength: 'Get stronger — bench press focus', muscle: 'Build muscle', endurance: 'Endurance', explosive: 'Explosiveness', hockey: 'Hockey' };
 const hasKnee = P => !!(P.injuries && (P.injuries.aclL || P.injuries.aclR || P.injuries.patella));
 
 function computeTargets(P) {
@@ -212,7 +225,7 @@ function computeTargets(P) {
   if (prim === 'fatloss' || (g.includes('fatloss') && prim !== 'muscle')) adj = -0.22;
   else if (prim === 'muscle') adj = g.includes('fatloss') ? -0.1 : 0.05;
   const kcal = Math.max(1600, Math.round(tdee * (1 + adj) / 50) * 50);
-  const protein = Math.round((g.includes('muscle') || g.includes('fatloss') ? P.goalWeight * 0.95 : P.goalWeight * 0.8) / 5) * 5;
+  const protein = Math.round((g.includes('muscle') || g.includes('fatloss') || g.includes('strength') ? P.goalWeight * 0.95 : P.goalWeight * 0.8) / 5) * 5;
   const meals = (P.diet && P.diet.meals) || 4;
   return { kcal, protein, tdee: Math.round(tdee), perMeal: Math.round(protein / meals) };
 }
@@ -307,9 +320,18 @@ function bikeSat(wk) {
 }
 
 /* sets for a slot given week modifier and profile style */
-function buildSets(slot, mod, P) {
+function buildSets(slot, mod, P, k) {
   const sets = [], endu = P && P.style === 'endurance', vol = P && P.intensity === 'volume' && mod === 'normal' ? 1 : 0;
-  if (slot.role === 'main') {
+  if (slot.role === 'bench') { // intensity over volume: heavy top set + 2–3 back-offs at −10%
+    const ph = benchPhase(k);
+    if (ph.single && mod === 'normal') sets.push({ tag: 'Single', rpeT: '8' });
+    sets.push({ tag: 'Top', rpeT: mod === 'deload' ? '7' : ph.top });
+    const bo = mod === 'normal' ? (endu ? 2 : ph.bo) : 1;
+    for (let i = 0; i < bo; i++) sets.push({ tag: 'Back-off', rpeT: mod === 'deload' ? '6–7' : '7–8', pct: 0.9 });
+  } else if (slot.role === 'tech') {
+    const n = mod === 'normal' ? 3 : 2;
+    for (let i = 0; i < n; i++) sets.push({ tag: 'Set', rpeT: mod === 'deload' ? '6–7' : '7–8' });
+  } else if (slot.role === 'main') {
     sets.push({ tag: 'Top', rpeT: mod === 'deload' ? '7' : '9' });
     const bo = (mod === 'normal' && !endu ? 2 : 1) + vol;
     for (let i = 0; i < bo; i++) sets.push({ tag: 'Back-off', rpeT: mod === 'deload' ? '6–7' : '8–9', pct: 0.9 });
@@ -362,7 +384,7 @@ function basePlan(k, P) {
     return { kind: 'cardio', code, cardio: c, title: c.title, sub: c.steps.map(s => s[0]).join(' · '), icon, color: c.mode === 'walk' ? 'bike' : c.mode, min: c.min, why: WHY[c.why || code] + (mod === 'deload' && code !== 'HOCKEY' ? ' ' + WHY.deload : '') };
   };
   const hockeyS = () => ({ kind: 'cardio', code: 'HOCKEY', cardio: { mode: 'hockey', title: 'Hockey', min: 75, steps: [['Game / skate', 'Warm up hips + groin first. Log knee pain after.']] }, title: 'Hockey 🏒', sub: 'Sunday skate', icon: 'H', color: 'hockey', min: 75, why: WHY.HOCKEY });
-  const testS = (key, big) => ({ kind: 'test', code: 'TEST', testKey: key, title: big ? 'Final Test Day 🏁' : 'Test Day', sub: big ? 'Mile · 100 yd swim · Pull-ups · Broad jump · Waist' : 'Avg weight · waist · pull-ups (+ mile/swim/jump earlier this week)', icon: 'T', color: 'test', min: big ? 75 : 20, why: WHY.TEST });
+  const testS = (key, big) => ({ kind: 'test', code: 'TEST', testKey: key, title: big ? 'Final Test Day 🏁' : 'Test Day', sub: big ? 'Mile · 100 yd swim · Pull-ups · Bench AMRAP · Broad jump · Waist' : 'Avg weight · waist · pull-ups · bench AMRAP @ ~85% (+ mile/swim/jump earlier this week)', icon: 'T', color: 'test', min: big ? 75 : 20, why: WHY.TEST });
   const tpl = weeklyTemplate(P);
   if (wk === 14) {
     if (d === 0) sessions.push(lift('upperA', 'UA'));

@@ -1,5 +1,5 @@
 /* Arnold Fit service worker — offline-first app shell */
-const CACHE = 'arnoldfit-v2.1.1';
+const CACHE = 'arnoldfit-v2.2.0';
 const ASSETS = ['./', './index.html', './manifest.json', './css/app.css', 
   './js/data.js', './js/verses.js', './js/devotionals.js', './js/devo.js', './js/foods.js', './js/store.js', './js/charts.js', './js/ui-core.js', './js/view-today.js', './js/view-train.js', './js/workout.js', './js/coach.js', './js/view-food.js', './js/view-fuel.js', './js/view-progress.js', './js/view-settings.js', './js/onboarding.js', './js/boot.js',
  

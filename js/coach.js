@@ -70,7 +70,8 @@ function parseW(v) { return U.wIn(+v); }
 /* ---------- command handlers: each returns {text, acts?} ---------- */
 const COACH_CMDS = [
   { re: /^(?:undo|undo (?:that|it|last)|revert(?: that)?)$/, fn: () => coachUndoLast() },
-  { re: /^(?:help|commands|what can you do\??|\?)$/, fn: () => ({ text: 'Try:\n• **bench 185 for 5, 5, 4**\n• **I only did 2 sets of bench**\n• **add a set of pull-ups 8 reps**\n• **remove a set of rows**\n• **swap the leg press for step-ups**\n• **skip laterals today** / **unskip laterals**\n• **what’s my target for RDL?**\n• **skip today** · **move today to Thursday**\nEvery change comes with Undo.' }) },
+  { re: /^(?:(?:what are )?my goals?\??|goals?|how'?s my bench(?: going| doing)?\??|bench (?:progress|goal|e1rm|max)\??|what'?s my bench (?:max|e1rm|goal|at)\??|how strong am i\??)$/, fn: () => cmdGoals() },
+  { re: /^(?:help|commands|what can you do\??|\?)$/, fn: () => ({ text: 'Try:\n• **how’s my bench?** / **my goals**\n• **bench 185 for 5, 5, 4**\n• **I only did 2 sets of bench**\n• **add a set of pull-ups 8 reps**\n• **remove a set of rows**\n• **swap the leg press for step-ups**\n• **skip laterals today** / **unskip laterals**\n• **what’s my target for RDL?**\n• **skip today** · **move today to Thursday**\nEvery change comes with Undo.' }) },
   { re: /\b(?:only|just)\s+(?:did|got|managed|finished|completed)\s+(\d+|one|two|three|four|a|an|single)\s+sets?\s+(?:of|on|for)?\s*(.+)$/, fn: m => cmdOnlyDid(NUMW[m[1]] || +m[1], m[2]) },
   { re: /^(?:did\s+)?(\d+|one|two|three|four)\s+sets?\s+of\s+(.+?)\s*(?:only)?$/, test: t => !/\d+\s*(?:reps?|x|×|for|at|@)/.test(t.replace(/^(?:did\s+)?(\d+|one|two|three|four)\s+sets?\s+of/, '')), fn: m => cmdOnlyDid(NUMW[m[1]] || +m[1], m[2]) },
   { re: /\b(?:add|log|did)\s+(?:a|an|one|1|another|an extra|one more)\s+(?:extra\s+)?set\s+(?:of|for|to|on)\s+(.+)$/, fn: m => cmdAddSet(m[1]) },
@@ -173,6 +174,13 @@ function cmdTarget(t) {
   const ids = S.active ? S.active.exercises.map(e => e.ex) : []; const id = matchEx(t, ids) || matchGlobal(t); if (!id) return notFound(t);
   const tg = withActive(() => nextTarget(id)); return { text: tg ? `**${EX[id].n}** next: **${withActive(() => targetText(id))}** — ${tg.note}.` : `No ${EX[id].n} logged yet — first session sets your baseline.` };
 }
+function cmdGoals() {
+  const g = benchGoal(), cur = (rolling7().slice(-1)[0] || {}).v, st = S.settings, P = S.profile;
+  const t = withActive(() => nextTarget('flat_bench', { role: 'bench' }));
+  let txt = `**Goal #1 — fat loss:** ${U.wOut(st.startWeight)} → ~${U.wOut(st.goalWeight)} ${U.w()} by Dec 31${cur ? ` (7-day avg now ${U.wOut(cur)})` : ''}. That stays the priority.`;
+  if (P.goals.includes('strength')) txt += `\n**Goal #2 — get stronger, bench focus:** ${g ? `bench e1RM **${U.wOut(g.now, 0)} ${U.w()}** (${g.pct >= 0 ? '+' : ''}${g.pct.toFixed(1)}% from ${U.wOut(g.base, 0)}). Dec 31 target **${U.wOut(g.lo, 0)}–${U.wOut(g.hi, 0)} ${U.w()}** (+5–10%).` : 'no bench baseline yet — your first heavy top set on Upper A sets it.'}${t ? `\nNext heavy bench: **${withActive(() => targetText('flat_bench', { role: 'bench' }))}** — ${t.note}.` : ''}\nBench is first on both upper days (Upper A heavy, Upper B paused). On a cut, gains are modest — keep protein ≥${st.protein} g.`;
+  return { text: txt };
+}
 function coachUndoLast() { if (!COACH_LAST || !COACH_UNDO[COACH_LAST]) return { text: 'Nothing to undo (undo history resets when the app reloads).' }; const id = COACH_LAST; return doCoachUndo(id); }
 function doCoachUndo(id) { const u = COACH_UNDO[id]; if (!u) return { text: 'That undo has expired (undo history resets when the app reloads).' }; restoreSnap(u.snap); delete COACH_UNDO[id]; COACH_LAST = Object.keys(COACH_UNDO).pop() || null; return { text: `Undone (${u.label}). Everything is back the way it was.` }; }
 function coachHandle(raw) {
@@ -191,9 +199,9 @@ function coachMsgHtml(m, i) {
 }
 function renderCoach() {
   const o = $('#coach'); if (!o || o.classList.contains('hidden')) return;
-  const ctx = S.active ? `Editing: ${S.active.title} (in progress)` : (() => { const s = planLiftSessions(today())[0]; if (s) return `Today: ${s.title}`; const w = doneRecent()[0]; return w ? `Most recent: ${w.title} · ${fmtDate(w.date)}` : 'No sessions logged yet'; })();
+  const ctx = (S.profile.goals.includes('strength') ? 'Goals: fat loss #1 · bench strength · ' : '') + (S.active ? `Editing: ${S.active.title} (in progress)` : (() => { const s = planLiftSessions(today())[0]; if (s) return `Today: ${s.title}`; const w = doneRecent()[0]; return w ? `Most recent: ${w.title} · ${fmtDate(w.date)}` : 'No sessions logged yet'; })());
   const msgs = S.chat.length ? S.chat.map(coachMsgHtml).join('') : `<div class="msg bot"><div class="bub">Hey — I’m your coach. Tell me what you actually did and I’ll fix the log, the plan, and your next targets.<br><br>e.g. <b>bench 185 for 5, 5, 4</b> · <b>I only did 2 sets of bench</b> · <b>swap the leg press for step-ups</b></div></div>`;
-  const chips = ['bench 185 for 5, 5, 4', 'I only did 2 sets of bench', 'add a set of pull-ups 8 reps', 'skip laterals today', 'swap the leg press for step-ups', 'help'];
+  const chips = ['how’s my bench?', 'bench 185 for 5, 5, 4', 'I only did 2 sets of bench', 'add a set of pull-ups 8 reps', 'skip laterals today', 'swap the leg press for step-ups', 'help'];
   o.innerHTML = `<div class="wk-top"><button class="icon-btn tap" data-a="closeCoach" aria-label="Close coach">✕</button><div><div class="tt">Coach</div><div class="el small" id="coachCtx">${esc(ctx)}</div></div><button class="icon-btn tap" data-a="clearCoach" aria-label="Clear chat" title="Clear chat">🧹</button></div><div class="chatlog" id="chatlog">${msgs}</div><div class="chatchips">${chips.map(c => `<button class="chip tap" data-a="coachChip" data-t="${esc(c)}">${esc(c)}</button>`).join('')}</div><form class="chatbar" id="chatForm"><input class="inp" id="chatIn" autocomplete="off" placeholder="Tell the coach what you did…" aria-label="Message"><button class="btn sm tap" type="submit" id="chatSend">Send</button></form>`;
   const lg = $('#chatlog'); lg.scrollTop = lg.scrollHeight;
 }

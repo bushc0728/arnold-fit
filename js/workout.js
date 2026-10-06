@@ -1,8 +1,20 @@
 /* Workout mode: Fitbod-style set logging, rest timer, swaps, PRs, next-session targets */
 'use strict';
 function resolveEx(slot, k) { const ed = (S.planEdits[k] || {})[slot.id] || {}; return ed.ex || S.swapPrefs[slot.id] || profileExercise(slot, S.profile); }
-function prefill(e, mod) {
-  const t = nextTarget(e.ex), ex = EX[e.ex];
+function prefill(e, mod, k) {
+  k = k || (S.active && S.active.date) || today();
+  const t = nextTarget(e.ex, { role: e.role, k }), ex = EX[e.ex];
+  if (t && t.bench) { // heavy bench: per-set targets (single / top / back-offs), deload −10%
+    e.target = t; e.note = `${t.phase}: ${t.note}` + (mod === 'deload' ? ' · Deload: ~10% lighter, top set @RPE 7' : '');
+    e.sets.forEach((s, i) => { if (s.done) return; const p = t.sets[i] || t.sets[t.sets.length - 1]; s.w = mod === 'deload' ? roundLoad(p.w * 0.9) : p.w; s.r = p.r; });
+    return;
+  }
+  if (!t && e.role === 'tech' && benchNow()) { // first paused/close-grip bench: ~72% of bench e1RM
+    const e1 = benchNow().v, w = roundLoad(e1 * 0.72 * (mod === 'deload' ? 0.9 : 1));
+    e.target = { rule: 'start', w, reps: e.sets.map(() => e.reps[0]), note: '' }; e.note = `First time: ~72% of your bench e1RM (${U.wOut(e1, 0)} ${U.w()}) → ${e.sets.length} × ${e.reps[0]} @RPE 7–8. Adjust by feel.`;
+    e.sets.forEach(s => { if (!s.done) { s.w = w; s.r = e.reps[0]; } }); return;
+  }
+  if (!t && e.role === 'bench') { e.target = null; e.note = `First heavy bench: warm up, then work up to a top set of ${e.reps[0]} @RPE ${e.sets.find(s => s.tag === 'Top').rpeT} — that sets your bench e1RM. Back-offs −10%.`; e.sets.forEach(s => { if (!s.done) { s.w = null; s.r = s.tag === 'Single' ? 1 : s.tag === 'Back-off' ? e.reps[0] + 1 : e.reps[0]; } }); return; }
   if (!t) { e.note = ex.kind === 'hold' ? `${e.reps[0]}–${e.reps[1]}s per side` : ex.kind === 'power' ? 'Max intent, full rest — stop if a landing hurts.' : `First time: work up to a set of ${e.reps[1]} @ RPE 9 — that’s your baseline.`; e.sets.forEach(s => { if (!s.done) { s.w = ex.added ? 0 : null; s.r = ex.kind === 'hold' ? e.reps[0] : ex.kind === 'power' ? e.reps[0] : null; } }); e.target = null; return; }
   e.target = t; e.note = t.note + (mod === 'deload' ? ' · Deload: ~10% lighter, leave reps in the tank' : '');
   e.sets.forEach((s, i) => {
@@ -14,9 +26,10 @@ function prefill(e, mod) {
 }
 function makeEx(slot, mod, k) {
   const exId = resolveEx(slot, k), ed = (S.planEdits[k] || {})[slot.id] || {};
-  const sets = buildSets(slot, mod, S.profile).map(s => ({ ...s, w: null, r: null, rpe: null, done: false }));
-  const e = { slot: slot.id, ex: exId, role: slot.role, reps: slot.reps, ss: slot.ss || null, planned: sets.length, sets, skipped: !!ed.skip };
-  prefill(e, mod); return e;
+  const sets = buildSets(slot, mod, S.profile, k).map(s => ({ ...s, w: null, r: null, rpe: null, done: false }));
+  const e = { slot: slot.id, ex: exId, role: slot.role, reps: slotReps(slot, k), ss: slot.ss || null, planned: sets.length, sets, skipped: !!ed.skip };
+  if (slot.role === 'bench') e.phase = benchPhase(k).name;
+  prefill(e, mod, k); return e;
 }
 function createWorkout(k, key) {
   const dp = dayPlan(k), s = dp.sessions.find(x => x.key === key) || sessionByKey(key);
@@ -35,7 +48,7 @@ function closeWorkout() { $('#workout').classList.add('hidden'); $('#workout').i
 let elT; function startElapsed() { clearInterval(elT); elT = setInterval(() => { const el = $('#wk-el'); if (el && S.active) el.textContent = fmtTime((Date.now() - S.active.startedAt) / 1000); }, 1000); }
 function wkProgress(w) { let tot = 0, d = 0; w.exercises.forEach(e => { if (e.skipped) return; e.sets.forEach(s => { tot++; if (s.done) d++; }); }); if (w.cardio) { tot++; if (w.cardio.dur) d++; } w.checklist.forEach(c => { tot++; if (c.done) d++; }); return tot ? d / tot : 0; }
 function rerenderWk() { const o = $('#workout'); if (o.classList.contains('hidden') || !S.active) return; const y = o.scrollTop; renderWorkout(); o.scrollTop = y; }
-function setLabel(e, s, si) { if (si >= e.planned) return 'Extra'; return s.tag === 'Back-off' ? 'Back-off' : s.tag === 'Top' ? 'Top set' : 'Set ' + (si + 1); }
+function setLabel(e, s, si) { if (si >= e.planned) return 'Extra'; return s.tag === 'Back-off' ? 'Back-off' : s.tag === 'Top' ? 'Top set' : s.tag === 'Single' ? 'Single' : 'Set ' + (si + 1); }
 function renderWorkout() {
   const w = S.active; if (!w) return closeWorkout();
   let h = `<div class="wk-top"><button class="icon-btn tap" data-a="minimize" aria-label="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div><div class="tt">${esc(w.title)}</div><div class="el" id="wk-el">${fmtTime((Date.now() - w.startedAt) / 1000)}</div></div><div class="row" style="gap:6px"><button class="icon-btn tap" data-a="openCoach" aria-label="Coach chat">${CHAT}</button><button class="icon-btn tap" data-a="discard" aria-label="Discard workout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></div><div class="wk-body"><div class="wk-progress"><i id="wk-prog" style="width:${wkProgress(w) * 100}%"></i></div>`;
@@ -44,9 +57,9 @@ function renderWorkout() {
   w.exercises.forEach((e, ei) => {
     const ex = EX[e.ex], all = !e.skipped && e.sets.length && e.sets.every(s => s.done), next = w.exercises[ei + 1];
     const isHold = ex.kind === 'hold', isPow = ex.kind === 'power', bj = e.ex === 'broad_jump';
-    const pres = e.role === 'main' ? `Top set + back-offs · ${e.reps[0]}–${e.reps[1]} reps` : isPow ? `${e.planned} × ${e.reps[0]} explosive` : isHold ? `${e.planned} × ${e.reps[0]}–${e.reps[1]} s/side` : `${e.planned} hard set${e.planned > 1 ? 's' : ''} · ${e.reps[0]}–${e.reps[1]} reps`;
+    const pres = e.role === 'bench' ? `${e.phase || benchPhase(w.date).name}: ${e.sets.some(s => s.tag === 'Single') ? 'heavy single + ' : ''}top set ${e.reps[0]}–${e.reps[1]} + back-offs −10%` : e.role === 'tech' ? `${e.planned} × ${e.reps[0]}–${e.reps[1]} @RPE 7–8 · technique` : e.role === 'main' ? `Top set + back-offs · ${e.reps[0]}–${e.reps[1]} reps` : isPow ? `${e.planned} × ${e.reps[0]} explosive` : isHold ? `${e.planned} × ${e.reps[0]}–${e.reps[1]} s/side` : `${e.planned} hard set${e.planned > 1 ? 's' : ''} · ${e.reps[0]}–${e.reps[1]} reps`;
     const xk = w.id + ':' + ei, open = !all || UI.exOpen === xk, dn = e.sets.filter(x => x.done).length;
-    h += `<div class="card excard ${all ? 'complete' : ''} ${all && !open ? 'collapsed' : ''} ${e.skipped ? 'exskip' : ''}" id="ex-${ei}" data-ex="${e.ex}">${e.ss && open ? `<div class="ss-tag" style="margin-bottom:6px">${e.ss} ${next && next.ss === e.ss ? 'A · then straight to B' : 'B'}</div>` : ''}<div class="exh"><div class="exthumb ${e.role === 'main' ? 'main' : ''}">${ei + 1}</div><div class="grow ${all ? 'tap' : ''}" ${all ? `data-a="exToggle" data-ei="${ei}"` : ''}><div class="exn">${esc(ex.n)}</div><div class="ext">${all && !open ? `<span style="color:var(--ok)">${dn} set${dn === 1 ? '' : 's'} ✓</span> · ${esc(fmtSetsShort(e))} · <u>edit</u>` : `${pres} · ${ex.m}${ex.kf ? ' · <span style="color:var(--ok)">knee-friendly</span>' : ''}`}</div></div>${open && !e.skipped ? `<button class="icon-btn tap" data-a="swap" data-ei="${ei}" aria-label="Swap exercise" title="Swap">⇄</button>` : ''}${e.skipped ? '' : `<button class="exchk tap ${all ? 'on' : dn ? 'part' : ''}" data-a="exDone" data-ei="${ei}" aria-label="${all ? 'Uncheck all sets' : 'Check all remaining sets'}" title="${all ? 'Uncheck all' : 'Check all sets'}">${CHECK}${!all && dn ? `<i>${dn}/${e.sets.length}</i>` : ''}</button>`}</div>`;
+    h += `<div class="card excard ${all ? 'complete' : ''} ${all && !open ? 'collapsed' : ''} ${e.skipped ? 'exskip' : ''}" id="ex-${ei}" data-ex="${e.ex}">${e.ss && open ? `<div class="ss-tag" style="margin-bottom:6px">${e.ss} ${next && next.ss === e.ss ? 'A · then straight to B' : 'B'}</div>` : ''}<div class="exh"><div class="exthumb ${['main', 'bench', 'tech'].includes(e.role) ? 'main' : ''}">${ei + 1}</div><div class="grow ${all ? 'tap' : ''}" ${all ? `data-a="exToggle" data-ei="${ei}"` : ''}><div class="exn">${esc(ex.n)}</div><div class="ext">${all && !open ? `<span style="color:var(--ok)">${dn} set${dn === 1 ? '' : 's'} ✓</span> · ${esc(fmtSetsShort(e))} · <u>edit</u>` : `${pres} · ${ex.m}${ex.kf ? ' · <span style="color:var(--ok)">knee-friendly</span>' : ''}`}</div></div>${open && !e.skipped ? `<button class="icon-btn tap" data-a="swap" data-ei="${ei}" aria-label="Swap exercise" title="Swap">⇄</button>` : ''}${e.skipped ? '' : `<button class="exchk tap ${all ? 'on' : dn ? 'part' : ''}" data-a="exDone" data-ei="${ei}" aria-label="${all ? 'Uncheck all sets' : 'Check all remaining sets'}" title="${all ? 'Uncheck all' : 'Check all sets'}">${CHECK}${!all && dn ? `<i>${dn}/${e.sets.length}</i>` : ''}</button>`}</div>`;
     if (all && !open) { h += `</div>`; return; }
     if (e.skipped) { h += `<div class="row between" style="margin-top:10px"><span class="small muted">Skipped today — target carries over unchanged.</span><button class="btn sm sec tap" data-a="skipEx" data-ei="${ei}">Unskip</button></div></div>`; return; }
     h += `<div class="small dim" style="margin-top:8px">${esc(ex.cue)}</div>${e.note ? `<div class="sugg">🎯 <span>${esc(e.note)}</span></div>` : ''}<div class="sets"><div class="sethead"><span>Set</span><span style="text-align:center">${isHold ? '—' : bj ? 'Dist in' : (ex.added ? '+' : '') + wu()}</span><span style="text-align:center">${isHold ? 'Sec' : 'Reps'}</span><span style="text-align:center">RPE</span><span></span></div>`;
@@ -88,7 +101,7 @@ function stopTimer() { clearInterval(T.id); const el = $('#timer'); if (el) el.r
 
 /* swaps — shared by the Swap sheet and the coach chat */
 function applySwap(e, id, remember, mod) {
-  e.ex = id; e.sets.forEach(s => { if (!s.done) { s.w = null; s.r = null; } }); prefill(e, mod || 'normal');
+  e.ex = id; e.sets.forEach(s => { if (!s.done) { s.w = null; s.r = null; } }); prefill(e, mod || 'normal', S.active && S.active.date);
   if (remember != null) setSwapDefault(e.slot, id, remember);
 }
 function setSwapDefault(slotId, id, remember) {
@@ -133,7 +146,7 @@ function finishWorkout() {
   showSummary(w, true);
 }
 function targetsList(w) {
-  const rows = w.exercises.filter(e => EX[e.ex].kind !== 'power').map(e => { const t = nextTarget(e.ex); if (!t) return ''; const ic = { add_weight: '⬆️', add_rep: '➕', hold: '⏸️' }[t.rule]; return `<div class="exrow tgtrow" data-ex="${e.ex}" data-rule="${t.rule}"><div class="exthumb">${ic}</div><div class="grow"><div class="nm">${esc(EX[e.ex].n)}</div><div class="small muted">${esc(t.note)}</div></div><b class="tgt">${esc(targetText(e.ex))}</b></div>`; }).join('');
+  const rows = w.exercises.filter(e => EX[e.ex].kind !== 'power').map(e => { const t = nextTarget(e.ex); if (!t) return ''; const ic = { add_weight: '⬆️', add_rep: '➕', hold: '⏸️', phase: '🔁', reset: '↘️', start: '🎯' }[t.rule] || '🎯'; return `<div class="exrow tgtrow" data-ex="${e.ex}" data-rule="${t.rule}"><div class="exthumb">${ic}</div><div class="grow"><div class="nm">${esc(EX[e.ex].n)}</div><div class="small muted">${esc(t.note)}</div></div><b class="tgt">${esc(targetText(e.ex))}</b></div>`; }).join('');
   return rows ? `<h2 class="sec">Next session targets</h2><div class="card" id="nextTargets">${rows}</div>` : '';
 }
 function showSummary(w, fresh) {
@@ -163,6 +176,7 @@ function fmtSetsShort(e) { const x = EX[e.ex]; return e.sets.filter(s => s.done)
 // fill empty fields from the target / plan so one tap logs "did what was planned"
 function autofillSet(e, s, si) {
   const ex = EX[e.ex], t = e.target;
+  if (t && t.sets && t.sets[si] && si < e.planned) { const p = t.sets[si], dl = S.active && S.active.mod === 'deload'; if (s.r == null) s.r = p.r; if (s.w == null && p.w != null) s.w = dl ? roundLoad(p.w * 0.9) : p.w; }
   if (s.r == null) s.r = t && t.reps && t.reps.length ? t.reps[Math.min(si, t.reps.length - 1)] : e.reps[0];
   if (s.w == null) {
     if (ex.added) s.w = (t && t.w) || 0;
@@ -175,7 +189,7 @@ function autofillSet(e, s, si) {
   }
   return true;
 }
-function restFor(w, ei) { const e = w.exercises[ei], ex = EX[e.ex], nx = w.exercises[ei + 1], nextSS = e.ss && nx && nx.ss === e.ss; return { sec: nextSS ? 20 : e.role === 'main' ? S.settings.rest.main : ex.kind === 'power' ? 120 : ex.kind === 'hold' ? 60 : S.settings.rest.acc, nextSS }; }
+function restFor(w, ei) { const e = w.exercises[ei], ex = EX[e.ex], nx = w.exercises[ei + 1], nextSS = e.ss && nx && nx.ss === e.ss; return { sec: nextSS ? 20 : ['main', 'bench', 'tech'].includes(e.role) ? S.settings.rest.main : ex.kind === 'power' ? 120 : ex.kind === 'hold' ? 60 : S.settings.rest.acc, nextSS }; }
 ACT.setDone = (el, d) => {
   const w = S.active, ei = +d.ei, e = w.exercises[ei], s = e.sets[+d.si], ex = EX[e.ex];
   if (!s.done) {

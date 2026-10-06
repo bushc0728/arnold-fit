@@ -396,3 +396,5 @@ a.chip{text-decoration:none} a.btn{text-decoration:none}
 .dv-donecard{display:flex;align-items:center;gap:12px;border-color:rgba(46,230,166,.3)}
 .dv-hrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 4px;border-bottom:1px solid var(--line)} .dv-hrow b{display:block;font-size:15px} .dv-hrow .xs{display:block;margin-top:2px}
 .dv-hdot{width:28px;height:28px;border-radius:50%;border:2px solid var(--line2);flex:none}
+/* v2.2 goals */
+.goalrow{display:flex;gap:10px;align-items:flex-start;padding:8px 0} .goalrow + .goalrow{border-top:1px solid var(--line)} .goalrow b{font-size:14.5px} .goalrow .muted{margin-top:2px;line-height:1.45}

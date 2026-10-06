@@ -31,6 +31,7 @@ VIEWS.progress = function () {
     h += `<div class="tip ${ok ? 'good' : 'info'}" id="projection" style="margin:12px 0 0"><div class="ic">📈</div><div>${pj.reached ? 'Goal weight reached — shift to maintenance or a slow recomp.' : pj.date ? `At ${U.wOut(Math.abs(pj.perWeek), 2)} ${wu()}/wk you'll hit <b>${U.wOut(goal)} ${wu()} on ${fmtDate(pj.date)}${pj.date.slice(0, 4) !== '2026' ? ', ' + pj.date.slice(0, 4) : ''}</b>${pj.date <= PLAN_END ? ' — ahead of Dec 31 ✅' : '.'}` : 'Trend is flat or rising — no projected date yet.'} ${pj.reached ? '' : `Needed pace: ${U.wOut(need, 2)} ${wu()}/wk.`}</div></div>`;
   } else h += `<div class="small dim" style="margin-top:10px">Projected goal date appears after ~4 weigh-ins.</div>`;
   h += `</div>`;
+  h += benchCard();
   const cs = calorieSuggestion();
   h += `<h2 class="sec">Calorie check <small>${fmtNum(S.settings.kcal)} kcal now</small></h2><div class="card" id="kcalcard">`;
   if (cs.status === 'need') h += `<div class="row"><div style="font-size:22px">🍽️</div><div class="small muted">Needs ≥3 weigh-ins in each of the last two 7-day windows to compare weekly averages.${cs.cur ? ` This week: ${cs.cur.n}.` : ''}</div></div>`;
@@ -40,8 +41,9 @@ VIEWS.progress = function () {
   TESTS.forEach(ts => { const v = S.tests[ts.key].waist; if (v && !wa.find(p => p.x === xT(ts.date))) wa.push({ x: xT(ts.date), y: U.lOut(v) }); });
   wa.sort((a, b) => a.x - b.x);
   h += `<h2 class="sec">Waist <small>${wa.length ? wa[wa.length - 1].y + ' ' + lu() : ''}</small></h2><div class="card">${Charts.line({ series: [{ pts: wa, color: '#3DA9FC', r: 3.5 }], xMin: xT('2026-10-01'), xMax, xTicks: monthTicks, empty: 'Measure at the navel, morning, relaxed.' })}<div class="row" style="margin-top:12px"><input class="inp grow" id="waist-in" type="number" inputmode="decimal" step="0.1" placeholder="Waist today (${lu()})" value="${S.body[t] && S.body[t].waist ? U.lOut(S.body[t].waist) : ''}"><button class="btn sm tap" style="height:48px" data-a="saveWaist">Log</button></div></div>`;
-  const lifts = ['incline_bench', 'weighted_pullup', 'flat_db_press', 'lat_pulldown', 'rdl', 'leg_press'];
-  const short = { incline_bench: 'Incline', weighted_pullup: 'Pull-up', flat_db_press: 'DB Press', lat_pulldown: 'Pulldown', rdl: 'RDL', leg_press: 'Leg Press' };
+  const lifts = ['flat_bench', 'paused_bench', 'weighted_pullup', 'lat_pulldown', 'rdl', 'leg_press'];
+  const short = { flat_bench: 'Bench', paused_bench: 'Paused', weighted_pullup: 'Pull-up', lat_pulldown: 'Pulldown', rdl: 'RDL', leg_press: 'Leg Press' };
+  if (!lifts.includes(UI.liftSel)) UI.liftSel = 'flat_bench';
   const lh = exHistory(UI.liftSel);
   h += `<h2 class="sec">Estimated 1RM <small>${lh.length ? 'Best ' + U.wOut(Math.max(...lh.map(x => x.best)), 0) + ' ' + wu() : ''}</small></h2><div class="card"><div class="seg" style="margin-bottom:12px">${lifts.map(l => `<button class="${UI.liftSel === l ? 'on' : ''}" data-a="liftSel" data-v="${l}">${short[l]}</button>`).join('')}</div>${Charts.line({ series: [{ pts: lh.map(x => ({ x: xT(x.date), y: U.wOut(x.best, 0) })), color: '#FF7A3D', r: 3.5 }], xMin: xT('2026-10-01'), xMax, xTicks: monthTicks, empty: 'Finish a workout with this lift to chart e1RM (Epley).' })}${EX[UI.liftSel].added ? '<div class="xs dim" style="margin-top:6px">Pull-up e1RM uses added load.</div>' : ''}</div>`;
   const wa2 = weekAgg(), cur2 = WEEKS.findIndex(m => t >= m.start && t <= m.end), sel = UI.cardioSel;
@@ -52,9 +54,27 @@ VIEWS.progress = function () {
   h += `<h2 class="sec">Test days <button class="btn sm tap" data-a="testSheet" data-key="${currentTestKey()}">Enter results</button></h2><div class="card" style="overflow-x:auto"><table class="tests"><tr><th>Test</th>${TESTS.map(x => `<th>${x.short}</th>`).join('')}<th>Δ</th></tr>${TEST_FIELDS.map(f => { const vals = TESTS.map(x => testVal(x.key, f.id)); const nn = vals.filter(v => v != null); let dl = ''; if (nn.length >= 2) { const d = nn[nn.length - 1] - nn[0]; const good = f.better === 'down' ? d < 0 : d > 0; dl = `<span class="delta ${d === 0 ? '' : good ? 'good' : 'bad'}">${d > 0 ? '+' : d < 0 ? '−' : ''}${fmtTest(f, Math.abs(d))}</span>`; } return `<tr><td>${f.label}</td>${vals.map(v => `<td>${v == null ? '<span class="dim">—</span>' : fmtTest(f, v)}</td>`).join('')}<td>${dl || '<span class="dim">—</span>'}</td></tr>`; }).join('')}</table><div class="xs dim" style="margin-top:8px">Weight auto-fills from that week's average weigh-ins.</div></div>`;
   return h;
 };
+/* goal #2: get stronger — bench press focus */
+function benchCard() {
+  const g = benchGoal(), ss = benchSessions(), tests = benchTests(), xMax = xT(PLAN_END) + 3, nt = nextTarget('flat_bench', { role: 'bench' });
+  const up = (() => { for (let i = 0; i < 14; i++) { const k = addDays(today(), i), dp = dayPlan(k); const s = dp && !dp.off && dp.sessions.find(x => x.kind === 'lift' && x.tpl === 'upperA' && !x.skipped && !sessionDone(x.key)); if (s) return k; } return null; })();
+  const ntk = up ? nextTarget('flat_bench', { role: 'bench', k: up }) : nt;
+  let h = `<h2 class="sec">Bench press · e1RM <small>Goal #2 · get stronger</small></h2><div class="card" id="benchCard">`;
+  if (g) {
+    const pct = Math.max(0, Math.min(1, (g.now - g.base) / (g.hi - g.base || 1)));
+    h += `<div class="row between"><div><div class="small muted">Estimated 1RM now</div><div class="kpi" id="benchNow">${U.wOut(g.now, 0)}<small>${wu()}</small></div></div><div style="text-align:right"><div class="delta ${g.pct >= 0 ? 'good' : 'bad'}">${g.pct >= 0 ? '▲' : '▼'} ${Math.abs(g.pct).toFixed(1)}% from ${U.wOut(g.base, 0)}</div><div class="small muted" id="benchTarget">Dec 31 target: <b>${U.wOut(g.lo, 0)}–${U.wOut(g.hi, 0)} ${wu()}</b> (+5–10%)</div></div></div><div class="pbar" style="margin-top:10px"><i style="width:${pct * 100}%;background:linear-gradient(90deg,#FF7A3D,#FFC145)"></i></div><div class="xs dim" style="margin-top:6px">Baseline = ${esc(g.src)}.</div>`;
+  } else h += `<div class="small muted">Log a heavy top set on Upper A (or the bench AMRAP on a test day) to set your bench baseline. Target: +5–10% by Dec 31.</div>`;
+  const series = [{ pts: ss.filter(x => x.heavy || x.mod !== 'deload').map(x => ({ x: xT(x.k), y: U.wOut(x.e1, 0) })), color: '#FF7A3D', r: 3.5 }, { pts: tests.map(t => ({ x: xT(t.k), y: U.wOut(t.v, 0) })), color: '#FFC145', line: false, area: false, r: 5.5 }];
+  const hl = g ? [{ y: U.wOut(g.hi, 0), label: '+10% ' + U.wOut(g.hi, 0), color: '#2EE6A6' }, { y: U.wOut(g.lo, 0), label: '+5% ' + U.wOut(g.lo, 0), color: 'rgba(46,230,166,.55)' }] : [];
+  if (g && ss.length) { const last = ss[ss.length - 1]; series.push({ pts: [{ x: xT(last.k), y: U.wOut(g.now, 0) }, { x: xT(PLAN_END), y: U.wOut((g.lo + g.hi) / 2, 0) }], color: '#2EE6A6', dash: '4 5', width: 1.6, dots: false, area: false, opacity: .7 }); }
+  h += `<div style="margin-top:12px" id="benchChart">${Charts.line({ series, hlines: hl, xMin: xT('2026-10-01'), xMax, xTicks: monthTicks, empty: 'Your bench e1RM trend appears after your first heavy top set.' })}</div><div class="legend"><span><i style="background:#FF7A3D"></i>Top-set e1RM</span><span><i style="background:#FFC145;height:8px;width:8px;border-radius:50%"></i>Test day</span><span><i style="background:#2EE6A6"></i>+5–10% target</span></div>`;
+  if (ntk) h += `<div class="sugg" style="margin-top:10px">🎯 <span>Next Upper A${up ? ` (${fmtDow(up)})` : ''}: <b>${esc(targetText('flat_bench', { role: 'bench', k: up || today() }))}</b> — ${esc(ntk.note)}</span></div>`;
+  h += `<div class="xs dim" style="margin-top:8px">Phases: Base 5–6 · Build 3–4 · Sharpen 2–3 + heavy single. On a calorie deficit bench gains are modest — keep protein ≥${S.settings.protein} g and fat loss stays priority #1.</div></div>`;
+  return h;
+}
 function currentTestKey() { const t = today(); const up = TESTS.find(x => weekStart(x.date) <= t && t <= addDays(weekStart(x.date), 6)) || TESTS.find(x => x.date >= t) || TESTS[TESTS.length - 1]; return up.key; }
 function testWeekAvg(key) { const ts = TESTS.find(x => x.key === key); const w0 = weekStart(ts.date); const vs = weights().filter(p => p.k >= w0 && p.k <= addDays(w0, 6)).map(p => p.v); return vs.length ? vs.reduce((a, b) => a + b) / vs.length : null; }
-function testVal(key, f) { const v = (S.tests[key] || {})[f]; if (v != null && v !== '') return +v; if (f === 'weight') return testWeekAvg(key); return null; }
+function testVal(key, f) { const v = (S.tests[key] || {})[f]; if (v != null && v !== '') return +v; if (f === 'weight') return testWeekAvg(key); if (f === 'bench') return benchTestE1(key); return null; }
 function fmtTest(f, v) { if (f.unit === 'time') return fmtTime(v); if (f.unit === 'w') return U.wOut(v); if (f.unit === 'len') return U.lOut(v) + (lu() === 'in' ? '″' : ''); return Math.round(v); }
 function testSheet(key) {
   UI.testSel = key; const tv = S.tests[key] || {}, ts = TESTS.find(x => x.key === key), avg = testWeekAvg(key);
@@ -65,6 +85,7 @@ function testSheet(key) {
   <div class="field"><label>100 yd swim (mm:ss)</label><input class="inp" id="t-swim100" inputmode="numeric" placeholder="2:30" value="${tv.swim100 != null ? fmtTime(tv.swim100) : ''}"></div>
   <div class="field"><label>Max strict pull-ups</label><input class="inp" id="t-pullups" type="number" inputmode="numeric" value="${tv.pullups ?? ''}"></div>
   <div class="field"><label>Broad jump (${lu()})</label><input class="inp" id="t-broad" type="number" inputmode="decimal" value="${tv.broad != null ? U.lOut(tv.broad) : ''}"></div></div>
+  <div class="small" style="margin:14px 0 6px;font-weight:700">Bench test · AMRAP @ ~85%${benchNow() ? ` <span class="dim">(≈ ${U.wOut(roundLoad(benchNow().v * 0.85))} ${wu()})</span>` : ''}</div><div class="grid2"><div class="field"><label>Load (${wu()})</label><input class="inp" id="t-benchW" type="number" inputmode="decimal" step="any" value="${tv.benchW != null ? U.wOut(tv.benchW) : ''}" placeholder="${benchNow() ? U.wOut(roundLoad(benchNow().v * 0.85)) : 'e.g. 185'}"></div><div class="field"><label>Reps to failure</label><input class="inp" id="t-benchR" type="number" inputmode="numeric" value="${tv.benchR ?? ''}" placeholder="3–8"></div></div><div class="xs dim" style="margin-top:6px">e1RM = load × (1 + reps/30). Leave blank to use the best top set logged that week${benchTestE1(key) && tv.bench == null ? ` (${U.wOut(benchTestE1(key), 0)} ${wu()})` : ''}.</div>
   <div class="small dim" style="margin-top:10px">Test date: ${fmtLong(ts.date)}. Leave weight blank to use that week's average${avg ? ` (${U.wOut(avg)} ${wu()})` : ''}.</div><button class="btn tap" style="margin-top:16px" data-a="saveTests">Save results</button>`);
 }
 
@@ -75,6 +96,7 @@ ACT.saveTests = () => {
   if (g('mile')) { const s = parseTime(g('mile')); if (s == null) return toast('Mile time as mm:ss'); tv.mile = s; }
   if (g('swim100')) { const s = parseTime(g('swim100')); if (s == null) return toast('Swim time as mm:ss'); tv.swim100 = s; }
   if (g('pullups')) tv.pullups = +g('pullups'); if (g('broad')) tv.broad = U.lIn(g('broad'));
+  if (g('benchW') || g('benchR')) { const bw = U.wIn(g('benchW')), br = +g('benchR'); if (!bw || !br) return toast('Bench test: enter load and reps'); if (br > 12) return toast('Use a load you can do ≤12 reps with (~85%)'); tv.benchW = bw; tv.benchR = br; tv.bench = +e1rm(bw, br).toFixed(1); }
   S.tests[key] = tv; save(); closeSheet(); haptic(15); toast('Test results saved ✓'); rerenderKeep();
 };
 ACT.applyKcal = (el, d) => { S.kcalLog.push({ date: today(), from: S.settings.kcal, to: +d.v }); S.settings.kcal = +d.v; save(); haptic(15); toast('Target → ' + fmtNum(S.settings.kcal) + ' kcal'); rerenderKeep(); };

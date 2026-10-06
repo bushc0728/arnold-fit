@@ -15,7 +15,7 @@ const STARTER_VIDEOS = [ // verified via YouTube oEmbed (200) — titles are the
 ];
 function defaultState() {
   return {
-    v: 2, created: Date.now(), onboarded: false, profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
+    v: 3, created: Date.now(), onboarded: false, profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
     settings: {
       name: 'Christopher', kcal: 2450, protein: 190, startWeight: 210, goalWeight: 200, goalDate: PLAN_END,
       units: { w: 'lb', d: 'mi', s: 'yd', len: 'in' }, rest: { main: 180, acc: 90 }, haptics: true, sound: true,
@@ -64,7 +64,16 @@ function migrate(raw) {
     if (!out.settings.habits.find(h => h.id === 'bible')) out.settings.habits.push({ id: 'bible', label: 'Daily devotional', ic: '📖' });
     out.migratedFrom = 1;
   }
-  out.v = 2;
+  if (!s.v || s.v < 3) { // ---- v2 → v3 (v2.2): strength/bench goal + bench-first Upper A/B
+    const g = out.profile.goals = Array.isArray(out.profile.goals) ? out.profile.goals : ['fatloss'];
+    if (!g.includes('strength')) g.splice(g.includes('fatloss') ? g.indexOf('fatloss') + 1 : 0, 0, 'strength');
+    if (!out.profile.primary || !g.includes(out.profile.primary)) out.profile.primary = g.includes('fatloss') ? 'fatloss' : g[0];
+    const dropped = ['ua1', 'ua3', 'ua6', 'ua7', 'ub1', 'ub3'], arch = {};
+    dropped.forEach(id => { if (out.swapPrefs && out.swapPrefs[id]) { arch[id] = out.swapPrefs[id]; delete out.swapPrefs[id]; } });
+    if (Object.keys(arch).length) out.archive = Object.assign({}, out.archive, { swapPrefsV2: arch });
+    if (s.v === 2) out.migratedV3 = Date.now();
+  }
+  out.v = 3;
   return out;
 }
 let S;
@@ -188,7 +197,7 @@ function calorieSuggestion() {
 }
 function exHistory(exId) {
   const out = [];
-  S.workouts.forEach(w => (w.exercises || []).forEach(e => { if (e.ex === exId && !e.skipped) { const d = e.sets.filter(s => s.done && s.r); if (d.length) out.push({ date: w.date, end: w.endedAt || 0, sets: d, e, best: Math.max(...d.map(s => e1rm(s.w, s.r))) }); } }));
+  S.workouts.forEach(w => (w.exercises || []).forEach(e => { if (e.ex === exId && !e.skipped) { const d = e.sets.filter(s => s.done && s.r); if (d.length) out.push({ date: w.date, end: w.endedAt || 0, sets: d, e, mod: w.mod || 'normal', best: Math.max(...d.map(s => e1rm(s.w, s.r))) }); } }));
   return out.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.end - b.end);
 }
 
@@ -196,11 +205,13 @@ function exHistory(exId) {
    all planned sets at top of range → +weight (upper +5, lower +10, DB +2.5–5)
    all planned sets in range → +1 rep;  missed bottom or fewer sets than planned → hold */
 function incFor(ex) { const kg = U.w() === 'kg'; if (ex.db) return { lb: kg ? 2.5 * 2.20462 : 5, label: kg ? '+2.5 kg (DB jump)' : '+5 lb (next DB pair; +2.5 if available)' }; if (ex.lw) return { lb: kg ? 5 * 2.20462 : 10, label: kg ? '+5 kg' : '+10 lb' }; return { lb: kg ? 2.5 * 2.20462 : 5, label: kg ? '+2.5 kg' : '+5 lb' }; }
-function nextTarget(exId) {
-  const h = exHistory(exId), last = h[h.length - 1]; if (!last) return null;
+function nextTarget(exId, o = {}) {
+  const h = exHistory(exId), last = h[h.length - 1];
+  if (exId === 'flat_bench' && (o.role === 'bench' || (!o.role && (!last || last.e.role === 'bench')))) return benchTarget(o.k);
+  if (!last) return null;
   const e = last.e, ex = EX[exId], [lo, hi] = e.reps, planned = Math.max(1, e.planned || e.sets.length);
   const done = e.sets.filter(s => s.done && s.r != null), pd = done.slice(0, planned);
-  const ref = e.role === 'main' ? (done.find(s => s.tag === 'Top') || done[0]) : done.reduce((a, s) => (s.w || 0) >= (a.w || 0) ? s : a, done[0]);
+  const ref = e.role === 'main' || e.role === 'bench' ? (done.find(s => s.tag === 'Top') || done[0]) : done.reduce((a, s) => (s.w || 0) >= (a.w || 0) ? s : a, done[0]);
   const w = ref.w || 0, base = { from: last.date, planned, did: done.length };
   if (ex.kind === 'hold') { const best = Math.max(...done.map(s => s.r || 0)); const t = Math.min(hi, best + 5); return { ...base, rule: best >= hi ? 'hold' : 'add_rep', w: null, reps: Array(planned).fill(t), note: best >= hi ? `Maxed ${hi}s — hold, or use the long-lever version` : `Last best ${best}s → aim ${t}s per side` }; }
   if (ex.kind === 'power') return { ...base, rule: 'hold', w: ref.w, reps: Array(planned).fill(lo), note: 'Power work: same reps, max intent, full rest' };
@@ -210,11 +221,52 @@ function nextTarget(exId) {
   if (pd.every(s => s.r >= hi)) { const inc = incFor(ex); return { ...base, rule: 'add_weight', w: roundLoad(w + inc.lb), reps: Array(planned).fill(lo), inc: inc.label, note: `Hit ${hi} on all ${planned} sets → ${inc.label}` }; }
   return { ...base, rule: 'add_rep', w, reps: pd.map(s => Math.min(hi, s.r + 1)), note: `In range → +1 rep per set at ${wl}` };
 }
-function targetText(exId) {
-  const t = nextTarget(exId); if (!t) return '';
+function targetText(exId, o) {
+  const t = nextTarget(exId, o); if (!t) return '';
+  if (t.bench) { const f = v => U.wOut(v); return `${t.single ? `1 @ ${f(t.single)} · ` : ''}${f(t.w)} × ${t.top}${t.rule === 'add_weight' ? ' ↑' : t.rule === 'add_rep' ? ' +1' : ''} · back-offs ${f(t.bo.w)} × ${t.bo.r}`; }
   if (EX[exId].kind === 'hold') return `${t.reps[0]}s/side`;
   const wl = EX[exId].added && !t.w ? 'BW' : t.w == null ? '' : (EX[exId].added ? '+' : '') + U.wOut(t.w);
   return `${wl}${wl ? ' × ' : ''}${t.reps.join('/')}${t.rule === 'add_weight' ? ' ↑' : t.rule === 'add_rep' ? ' +1' : ''}`;
+}
+
+/* ---------- bench press (v2.2): e1RM, autoregulated top-set progression, tests, goal ----------
+   Top set drives everything. Same phase rep range: hit top of range → +5 lb (+10 if RPE ≤7.5);
+   in range → +1 rep (hold if RPE ≥9.5); 1 short → hold; further short → −5% reset; fewer sets → hold.
+   New phase (Base 5–6 → Build 3–4 → Sharpen 2–3): load re-derived from e1RM at ~RPE 8.5. */
+const BENCH_ID = 'flat_bench';
+function benchSetE1(s) { if (!s || !s.w || !s.r) return 0; const rir = s.rpe ? Math.max(0, 10 - s.rpe) : 0; return s.w * (1 + (s.r + rir) / 30); }
+function benchTopSet(e) { const d = e.sets.filter(s => s.done && s.r && s.w); return d.find(s => s.tag === 'Top') || d.reduce((a, s) => !a || s.w > a.w ? s : a, null); }
+const loadFor = (e1, reps, rir = 1.5) => roundLoad(e1 / (1 + (reps + rir) / 30));
+function benchSessions() { return exHistory(BENCH_ID).map(x => { const t = benchTopSet(x.e); return t ? { k: x.date, e1: benchSetE1(t), top: t, mod: x.mod, e: x.e, heavy: x.e.role === 'bench' } : null; }).filter(Boolean); }
+function benchTestE1(key) { // entered AMRAP result, else best top-set e1RM logged in that test week
+  const v = (S.tests[key] || {}).bench; if (v != null && v !== '') return +v;
+  const ts = TESTS.find(x => x.key === key); if (!ts) return null; const w0 = weekStart(ts.date), w1 = addDays(w0, 6);
+  const xs = benchSessions().filter(x => x.k >= w0 && x.k <= w1 && x.k <= today()); return xs.length ? Math.max(...xs.map(x => x.e1)) : null;
+}
+function benchTests() { return TESTS.map(t => ({ key: t.key, k: t.date, label: t.label, v: benchTestE1(t.key), entered: (S.tests[t.key] || {}).bench != null })).filter(t => t.v); }
+function benchBaseline() { const t = benchTests()[0]; if (t) return { v: t.v, src: t.label + ' test', k: t.k }; const s = benchSessions()[0]; return s ? { v: s.e1, src: 'first logged top set', k: s.k } : null; }
+function benchNow() { const pts = benchSessions().filter(x => x.mod !== 'deload').map(x => ({ k: x.k, v: x.e1 })).concat(benchTests().filter(t => t.entered).map(t => ({ k: t.k, v: t.v }))).sort((a, b) => a.k < b.k ? -1 : a.k > b.k ? 1 : 0); return pts.length ? pts[pts.length - 1] : null; }
+function benchGoal() { const b = benchBaseline(); if (!b) return null; const now = benchNow(); return { base: b.v, src: b.src, lo: b.v * 1.05, hi: b.v * 1.10, now: now ? now.v : b.v, pct: now ? (now.v / b.v - 1) * 100 : 0 }; }
+function benchTarget(k) {
+  k = k || today(); const ph = benchPhase(k), [lo, hi] = ph.reps, mod = modFor(k);
+  const layout = buildSets({ role: 'bench' }, mod, S.profile, k), ss = benchSessions();
+  const real = ss.filter(x => x.mod !== 'deload'), last = real[real.length - 1] || ss[ss.length - 1];
+  const lt = benchTests().filter(t => t.entered).pop(), kg = U.w() === 'kg';
+  let w, top, rule, note, from, did = 0;
+  if (lt && (!last || lt.k > last.k)) { w = loadFor(lt.v, lo); top = lo; rule = 'phase'; from = lt.k; note = `From your ${lt.label} bench test (e1RM ${U.wOut(lt.v, 0)} ${U.w()}) → ${ph.name}: ${lo}–${hi} reps @RPE ${ph.top}`; }
+  else if (last) {
+    const tp = last.top, e = last.e, planned = Math.max(1, e.planned || e.sets.length), rpe = tp.rpe; from = last.k; did = e.sets.filter(s => s.done && s.r != null).length;
+    const same = last.heavy && e.reps && e.reps[0] === lo && e.reps[1] === hi, wl = U.wOut(tp.w) + ' ' + U.w();
+    if (!same) { w = loadFor(last.e1, lo); top = lo; rule = 'phase'; note = `${ph.name} phase: top set ${lo}–${hi} @RPE ${ph.top} — load from your e1RM ${U.wOut(last.e1, 0)} ${U.w()}`; }
+    else if (did < planned) { w = tp.w; top = Math.max(lo, Math.min(hi, tp.r)); rule = 'hold'; note = `Did ${did}/${planned} sets last time → hold ${wl}, complete all ${planned}`; }
+    else if (tp.r >= hi) { const big = rpe != null && rpe <= 7.5, inc = kg ? (big ? 5 : 2.5) * 2.20462 : big ? 10 : 5; w = roundLoad(tp.w + inc); top = lo; rule = 'add_weight'; note = `Top set ${wl} × ${tp.r}${rpe ? ' @' + rpe : ''} hit the top of ${lo}–${hi} → ${kg ? (big ? '+5 kg' : '+2.5 kg') : big ? '+10 lb' : '+5 lb'}`; }
+    else if (tp.r >= lo) { if (rpe != null && rpe >= 9.5) { w = tp.w; top = tp.r; rule = 'hold'; note = `${tp.r} reps but RPE ${rpe} — own ${wl} × ${tp.r} before adding reps`; } else { w = tp.w; top = tp.r + 1; rule = 'add_rep'; note = `Top set in range → +1 rep at ${wl}`; } }
+    else if (tp.r >= lo - 1) { w = tp.w; top = lo; rule = 'hold'; note = `1 rep short of ${lo} → hold ${wl}`; }
+    else { w = roundLoad(tp.w * 0.95); top = lo; rule = 'reset'; note = `Top set fell short (${tp.r} < ${lo}) → reset −5% to ${U.wOut(roundLoad(tp.w * 0.95))} ${U.w()} and rebuild`; }
+  } else return null;
+  const bo = { w: roundLoad(w * 0.9), r: top + 1 }, single = ph.single ? loadFor(w * (1 + (top + 1.5) / 30), 1, 2) : null;
+  const sets = layout.map(s => s.tag === 'Single' ? { w: single, r: 1 } : s.tag === 'Top' ? { w, r: top } : { w: bo.w, r: bo.r });
+  return { bench: true, phase: ph.name, from, planned: layout.length, did, rule, w, top, bo, single, sets, reps: sets.map(s => s.r), note };
 }
 
 /* ---------- food ---------- */

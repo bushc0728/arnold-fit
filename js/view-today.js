@@ -4,15 +4,17 @@ function sessionLines(s, mod, k) {
   if (s.kind === 'lift') {
     const P = S.profile, edits = S.planEdits[k || s.date] || {};
     return slotsFor(s.tpl, P).map(sl => {
-      const ed = edits[sl.id] || {}, exId = ed.ex || S.swapPrefs[sl.id] || profileExercise(sl, P), ex = EX[exId], sets = buildSets(sl, mod, P);
+      const ed = edits[sl.id] || {}, exId = ed.ex || S.swapPrefs[sl.id] || profileExercise(sl, P), ex = EX[exId], dk = k || s.date, sets = buildSets(sl, mod, P, dk), rp = slotReps(sl, dk);
       let pres;
-      if (sl.role === 'main') pres = `1 top @RPE ${sets[0].rpeT} + ${sets.length - 1} back-off · ${sl.reps[0]}–${sl.reps[1]}`;
+      if (sl.role === 'bench') { const ph = benchPhase(dk), nb = sets.filter(x => x.tag === 'Back-off').length; pres = `${ph.name} · ${sets.some(x => x.tag === 'Single') ? 'heavy single @8 + ' : ''}1 top ${rp[0]}–${rp[1]} @RPE ${sets.find(x => x.tag === 'Top').rpeT} + ${nb} back-off${nb > 1 ? 's' : ''} −10%`; }
+      else if (sl.role === 'tech') pres = `${sets.length} × ${rp[0]}–${rp[1]} @RPE ${sets[0].rpeT} · technique`;
+      else if (sl.role === 'main') pres = `1 top @RPE ${sets[0].rpeT} + ${sets.length - 1} back-off · ${sl.reps[0]}–${sl.reps[1]}`;
       else if (sl.role === 'power') pres = `${sets.length}×${sl.reps[0]} · max intent`;
       else if (sl.role === 'hold') pres = `${sets.length}×${sl.reps[0]}–${sl.reps[1]}s/side`;
       else pres = `${sets.length} hard × ${sl.reps[0]}–${sl.reps[1]} @RPE ${sets[0].rpeT}`;
-      const tt = targetText(exId);
+      const tt = targetText(exId, { role: sl.role, k: dk });
       const ini = ex.n.split(' ').filter(w => /^[A-Z]/.test(w)).slice(0, 2).map(w => w[0]).join('');
-      return `<div class="exrow ${ed.skip ? 'skipped' : ''}"><div class="exthumb ${sl.role === 'main' ? 'main' : ''}">${ini}</div><div class="grow"><div class="nm">${esc(ex.n)}${sl.ss ? ' <span class="ss-tag">SS</span>' : ''}${ed.skip ? ' <span class="chip">Skip today</span>' : ''}</div><div class="small muted">${pres}</div>${tt && !ed.skip ? `<div class="target">🎯 Next: ${esc(tt)}</div>` : ''}</div></div>`;
+      return `<div class="exrow ${ed.skip ? 'skipped' : ''}"><div class="exthumb ${['main', 'bench', 'tech'].includes(sl.role) ? 'main' : ''}">${ini}</div><div class="grow"><div class="nm">${esc(ex.n)}${sl.ss ? ' <span class="ss-tag">SS</span>' : ''}${ed.skip ? ' <span class="chip">Skip today</span>' : ''}</div><div class="small muted">${pres}</div>${tt && !ed.skip ? `<div class="target">🎯 Next: ${esc(tt)}</div>` : ''}</div></div>`;
     }).join('') + (s.finisher ? `<div class="exrow"><div class="exthumb" style="color:var(--bike)">${s.finisher.mode === 'walk' ? 'W' : 'B'}</div><div class="grow"><div class="nm">${esc(s.finisher.title)}</div><div class="small muted">${s.finisher.min}′ finisher · RPE 3–4</div></div></div>` : '');
   }
   if (s.kind === 'cardio') return `<div class="steps">${s.cardio.steps.map(st => `<div class="step"><div class="bul c-${s.color}"></div><div><b>${esc(st[0])}</b><span>${esc(st[1])}</span></div></div>`).join('')}</div>${s.cardio.tip ? `<div class="small" style="color:var(--warn);margin-top:6px">⚠️ ${esc(s.cardio.tip)}</div>` : ''}`;
