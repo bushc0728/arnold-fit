@@ -1,0 +1,44 @@
+/* Settings: profile, targets, units, workout, saved swaps, habits, backup */
+'use strict';
+VIEWS.settings = function () {
+  const st = S.settings, un = st.units, P = S.profile, T = computeTargets(P);
+  const seg = (name, opts) => `<div class="seg" style="width:140px">${opts.map(o => `<button class="${un[name] === o ? 'on' : ''}" data-a="unit" data-n="${name}" data-v="${o}">${o}</button>`).join('')}</div>`;
+  const tg = n => `<input type="checkbox" data-tog="${n}" ${st[n] ? 'checked' : ''} style="width:22px;height:22px;accent-color:#FF2E63">`;
+  let h = hdr('Arnold Fit', 'Settings');
+  h += `<h2 class="sec">Profile <button class="btn sm sec tap" data-a="retakeQuiz" id="retakeBtn">Retake quiz</button></h2><div class="card small" id="profileCard"><div class="row wrap" style="gap:6px">${P.goals.map(g => `<span class="chip ${g === P.primary ? 'grad' : ''}">${GOAL_LABEL[g]}</span>`).join('')}</div><div class="muted" style="margin-top:10px;line-height:1.6">${P.style[0].toUpperCase() + P.style.slice(1)} · ${P.days} days/wk · ${P.sessionMin} min · ${P.time}<br>${Math.floor(P.heightIn / 12)}′${P.heightIn % 12}″ · ${P.weight} → ${P.goalWeight} lb · age ${P.age}<br>${P.gym === 'full' ? 'Full gym' : 'Basic gym'} · ${P.pool ? 'Pool' : 'No pool'} · bike: ${P.bike}<br>${hasKnee(P) ? `Knees: ${[P.injuries.aclL && 'L ACL', P.injuries.aclR && 'R ACL', P.injuries.patella && 'patella'].filter(Boolean).join(', ')}${P.injuries.flare ? ' · <b style="color:var(--bad)">flare mode</b>' : ''}` : 'No knee history'}</div></div>`;
+  h += `<h2 class="sec">Targets</h2><div class="card setlist"><div class="li"><span>Calories (kcal)</span><input class="inp" type="number" inputmode="numeric" data-set="kcal" value="${st.kcal}"></div><div class="li"><span>Protein (g/day)</span><input class="inp" type="number" inputmode="numeric" data-set="protein" value="${st.protein}"></div><div class="li"><span>Start weight (${wu()})</span><input class="inp" type="number" inputmode="decimal" data-set="startWeight" value="${U.wOut(st.startWeight)}"></div><div class="li"><span>Goal weight (${wu()})</span><input class="inp" type="number" inputmode="decimal" data-set="goalWeight" value="${U.wOut(st.goalWeight)}"></div><div class="li"><span>Name</span><input class="inp" data-set="name" value="${esc(st.name)}"></div>${T.kcal !== st.kcal || T.protein !== st.protein ? `<div class="li"><span class="small muted">Profile suggests ${fmtNum(T.kcal)} kcal · ${T.protein} g</span><button class="btn sm sec tap" style="width:auto" data-a="recalcTargets">Use</button></div>` : ''}</div>`;
+  h += `<h2 class="sec">Units</h2><div class="card setlist"><div class="li"><span>Weight</span>${seg('w', ['lb', 'kg'])}</div><div class="li"><span>Run/bike distance</span>${seg('d', ['mi', 'km'])}</div><div class="li"><span>Swim distance</span>${seg('s', ['yd', 'm'])}</div><div class="li"><span>Body length</span>${seg('len', ['in', 'cm'])}</div></div>`;
+  const sw = Object.keys(S.swapPrefs);
+  h += `<h2 class="sec">Workout</h2><div class="card setlist"><div class="li"><span>Rest · main lifts (s)</span><input class="inp" type="number" inputmode="numeric" data-rest="main" value="${st.rest.main}"></div><div class="li"><span>Rest · accessories (s)</span><input class="inp" type="number" inputmode="numeric" data-rest="acc" value="${st.rest.acc}"></div><div class="li"><span>Vibration</span>${tg('haptics')}</div><div class="li"><span>Timer sound</span>${tg('sound')}</div></div>`;
+  h += `<h2 class="sec">Saved swaps <small>${sw.length}</small></h2><div class="card" id="savedSwaps">${sw.length ? sw.map(id => { const sl = slotById(id); return sl ? `<div class="exrow"><div class="grow"><div class="nm">${esc(EX[S.swapPrefs[id]].n)}</div><div class="xs dim">replaces ${esc(EX[profileExercise(sl, P)].n)}</div></div><button class="btn sm sec tap" style="width:auto" data-a="rmSwap" data-id="${id}">Reset</button></div>` : ''; }).join('') : '<div class="small muted">No default swaps. Swap in a workout (⇄) or tell the coach “swap X for Y” and choose “Make it my default”.</div>'}</div>`;
+  h += `<h2 class="sec">Habits</h2><div class="card">${st.habits.map((x, i) => `<div class="hab-edit"><input class="inp" style="width:58px;text-align:center" data-hab="ic" data-i="${i}" value="${esc(x.ic || '')}" maxlength="4" aria-label="Icon"><input class="inp grow" data-hab="label" data-i="${i}" value="${esc(x.label)}" aria-label="Habit name"><button class="icon-btn tap" style="height:44px;width:44px" data-a="rmHabit" data-i="${i}" aria-label="Delete habit">✕</button></div>`).join('')}<button class="btn sec sm tap" style="width:100%;margin-top:4px" data-a="addHabit">+ Add habit</button></div>`;
+  h += `<h2 class="sec">Backup</h2><div class="card"><div class="small muted" style="margin-bottom:12px">All data lives on this device (localStorage). Export a JSON backup regularly — e.g. save it to Files/iCloud.</div><div class="grid2"><button class="btn sec tap" data-a="export">⬇︎ Export</button><button class="btn sec tap" data-a="import">⬆︎ Import</button></div><input type="file" id="importFile" accept="application/json,.json" class="hidden"><button class="btn danger tap" style="margin-top:10px" data-a="reset">Reset all data</button></div>`;
+  h += `<h2 class="sec">Install</h2><div class="card small muted" style="line-height:1.5">iPhone: open in <b>Safari</b> → Share → <b>Add to Home Screen</b>. Android: Chrome ⋮ → <b>Install app</b>. Works offline after the first load (videos & “read more” need a connection).</div><div class="xs dim" style="text-align:center;margin:18px 0">Arnold Fit v2.0 · ${S.workouts.length} sessions logged</div>`;
+  return h;
+};
+function exportData() {
+  const blob = new Blob([JSON.stringify({ app: 'arnold-fit', version: 2, exported: new Date().toISOString(), data: S }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `arnold-fit-backup-${today()}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Backup exported ✓');
+}
+function importData(file) {
+  const rd = new FileReader();
+  rd.onload = () => { try { const j = JSON.parse(rd.result); const d = j.data || j; if (!d || typeof d !== 'object' || !d.settings || !d.habitLog) throw new Error('not an Arnold Fit backup'); if (!confirm('Replace all current data with this backup?')) return; S = migrate(d); invalidatePlan(); save(); render(); toast('Backup imported ✓'); } catch (e) { toast('Import failed: ' + e.message); } };
+  rd.readAsText(file);
+}
+ACT.unit = (el, d) => { S.settings.units[d.n] = d.v; save(); haptic(); rerenderKeep(); };
+ACT.rmHabit = (el, d) => { const hb = S.settings.habits[+d.i]; if (confirm(`Remove “${hb.label}”?`)) { S.settings.habits.splice(+d.i, 1); save(); rerenderKeep(); } };
+ACT.addHabit = () => { S.settings.habits.push({ id: 'h' + uid(), label: 'New habit', ic: '✅' }); save(); rerenderKeep(); setTimeout(() => { const ins = $$('[data-hab="label"]'); const l = ins[ins.length - 1]; l.focus(); l.select(); }, 50); };
+ACT.rmSwap = (el, d) => { delete S.swapPrefs[d.id]; save(); rerenderKeep(); toast('Swap reset to plan default'); };
+ACT.recalcTargets = () => { const T = computeTargets(S.profile); S.settings.kcal = T.kcal; S.settings.protein = T.protein; save(); rerenderKeep(); toast('Targets updated'); };
+ACT.export = () => exportData();
+ACT.import = () => $('#importFile').click();
+ACT.reset = () => { if (confirm('Erase ALL Arnold Fit data on this device?') && confirm('Really? Export a backup first if unsure.')) { localStorage.removeItem(STORE_KEY); S = defaultState(); S.seeds.oct2026wk2 = true; invalidatePlan(); save(); render(); toast('All data reset'); openOnboard(); } };
+document.addEventListener('change', ev => {
+  const t = ev.target, st = S.settings;
+  if (t.id === 'importFile' && t.files[0]) { importData(t.files[0]); t.value = ''; return; }
+  if (t.dataset.set) { const n = t.dataset.set; if (n === 'name') st.name = t.value.trim() || 'Christopher'; else if (n === 'startWeight' || n === 'goalWeight') st[n] = U.wIn(t.value) || st[n]; else st[n] = +t.value || st[n]; save(); toast('Saved ✓'); }
+  if (t.dataset.rest) { st.rest[t.dataset.rest] = Math.max(10, +t.value || 90); save(); toast('Saved ✓'); }
+  if (t.dataset.tog) { st[t.dataset.tog] = t.checked; save(); }
+  if (t.dataset.hab) { const hb = st.habits[+t.dataset.i]; hb[t.dataset.hab] = t.value.trim() || hb[t.dataset.hab]; save(); toast('Habit updated ✓'); }
+});
