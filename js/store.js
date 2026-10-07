@@ -20,6 +20,7 @@ function defaultState() {
       name: 'Christopher', kcal: 2450, protein: 190, startWeight: 210, goalWeight: 200, goalDate: PLAN_END,
       units: { w: 'lb', d: 'mi', s: 'yd', len: 'in' }, rest: { main: 180, acc: 90 }, haptics: true, sound: true,
       habits: DEFAULT_HABITS.map(h => ({ ...h })),
+      nn: ['train', 'protein', 'mobility', 'devo', 'sleep'], reminder: { on: true, time: '20:00' }, // v2.4
     },
     habitLog: {}, body: {}, workouts: [], active: null,
     tests: { baseline: {}, nov1: {}, nov29: {}, dec31: {} },
@@ -33,6 +34,7 @@ function defaultState() {
     schedule: { moves: {}, skips: {}, off: {} },
     planEdits: {}, // date -> { slotId: {ex?, skip?} }
     chat: [], seeds: {},
+    disc: { commit: {}, checkin: {} }, // v2.3/2.4 discipline layer
   };
 }
 function migrateKey(key) { // v1 "date:idx" → v2 "date:CODE"
@@ -56,6 +58,9 @@ function migrate(raw) {
   out.devo = Object.assign(defaultState().devo, s.devo || {});
   { const hb = out.settings.habits.find(h => h.id === 'bible'); if (hb && hb.label === 'Read today’s verse') hb.label = 'Daily devotional'; }
   out.schedule = Object.assign({ moves: {}, skips: {}, off: {} }, s.schedule || {});
+  out.disc = Object.assign({ commit: {}, checkin: {} }, s.disc || {});
+  if (!Array.isArray(out.settings.nn) || !out.settings.nn.length) out.settings.nn = defaultState().settings.nn.slice();
+  out.settings.reminder = Object.assign({ on: true, time: '20:00' }, out.settings.reminder || {});
   if (!Array.isArray(out.videos)) out.videos = defaultState().videos;
   if (!Array.isArray(out.videoCats)) out.videoCats = defaultState().videoCats;
   if (!s.v || s.v < 2) { // ---- v1 → v2

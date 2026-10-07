@@ -48,16 +48,16 @@ function contextTips(k) {
   return tips.map(t => `<div class="tip ${t[2]}"><div class="ic">${t[0]}</div><div>${t[1]}</div></div>`).join('');
 }
 function scheduleBanners(k) {
-  const ws = weekStart(k), out = [];
+  const ws = weekStart(k), rows = [];
   for (let i = 0; i < 7; i++) {
     const dk = addDays(ws, i), dp = dayPlan(dk); if (!dp) continue;
     dp.sessions.forEach(s => {
       const sk = S.schedule.skips[s.key];
-      if (sk && sk.needsMove && !S.schedule.moves[s.key] && dk <= k) out.push(`<div class="tip warnbox" data-banner="${s.key}"><div class="ic">↪️</div><div class="grow"><b>${esc(s.title)}</b> (${fmtDow(dk)}) was skipped. Move it to another day this week?<div class="row" style="margin-top:8px;gap:8px"><button class="btn sm tap" data-a="moveSheet" data-key="${s.key}">Move it</button><button class="btn sm ghost tap" data-a="dropSkip" data-key="${s.key}">Let it go</button></div></div></div>`);
-      if (dp.off && dk >= k && sessStatus(s) === 'todo') out.push(`<div class="tip warnbox" data-banner="${s.key}"><div class="ic">📅</div><div class="grow"><b>${fmtDow(dk)}</b> is a day off (${esc(dp.off)}). <b>${esc(s.title)}</b> needs a new day — or drop it if things slip.<div class="row" style="margin-top:8px;gap:8px"><button class="btn sm tap" data-a="moveSheet" data-key="${s.key}">Move it</button><button class="btn sm ghost tap" data-a="skip" data-key="${s.key}" data-reason="Day off">Drop it</button></div></div></div>`);
+      if (sk && sk.needsMove && !S.schedule.moves[s.key] && dk <= k) rows.push(`<div class="schrow" data-banner="${s.key}"><div class="grow"><div class="sch-t">${esc(s.title)}</div><div class="xs dim">${fmtDow(dk)} · skipped — move it this week?</div></div><div class="sch-b"><button class="btn sm tap" data-a="moveSheet" data-key="${s.key}">Move</button><button class="btn sm ghost tap" data-a="dropSkip" data-key="${s.key}" aria-label="Let it go">Let go</button></div></div>`);
+      if (dp.off && dk >= k && sessStatus(s) === 'todo') rows.push(`<div class="schrow" data-banner="${s.key}"><div class="grow"><div class="sch-t">${esc(s.title)}</div><div class="xs dim">${fmtDow(dk)} is a day off (${esc(dp.off)}) — needs a new day</div></div><div class="sch-b"><button class="btn sm tap" data-a="moveSheet" data-key="${s.key}">Move</button><button class="btn sm ghost tap" data-a="skip" data-key="${s.key}" data-reason="Day off">Drop</button></div></div>`);
     });
   }
-  return out.join('');
+  return rows.length ? `<div class="card sched" id="schedCard"><div class="row between"><span class="chip warnchip">↪ Schedule</span><span class="xs dim">${rows.length} to sort out</span></div>${rows.join('')}</div>` : '';
 }
 function verseCard(k) {
   const v = verseFor(k), fav = S.verse.favs.includes(v.id), read = (S.habitLog[k] || {}).bible;
@@ -65,7 +65,7 @@ function verseCard(k) {
 }
 function habitsCard() {
   const k = UI.habDate || today(), hs = S.settings.habits, log = S.habitLog[k] || {}, pct = habitPct(k), st = streak(), isT = k === today();
-  return `<div class="card" id="habits"><div class="row between" style="margin-bottom:12px"><button class="icon-btn tap" data-a="habDay" data-v="-1" aria-label="Previous day">‹</button><div style="text-align:center"><div style="font-weight:750" id="habDateLbl">${isT ? 'Today' : fmtDow(k)}</div><div class="xs dim">${hs.filter(x => log[x.id]).length}/${hs.length} done</div></div><button class="icon-btn tap" data-a="habDay" data-v="1" aria-label="Next day" ${isT ? 'disabled style="opacity:.3"' : ''}>›</button></div><div class="ringwrap"><div class="ring">${Charts.ring(pct)}<div class="ctr"><div><b>${Math.round(pct * 100)}%</b><span>${isT ? 'today' : fmtDate(k)}</span></div></div></div><div><div class="streak" id="streak">🔥 ${st} day${st === 1 ? '' : 's'}</div><div class="small muted">Streak · days with ≥75% habits</div></div></div><div class="habits">${hs.map(x => { const hsx = habitStreak(x.id); return `<button class="habit ${log[x.id] ? 'on' : ''}" data-a="habit" data-id="${esc(x.id)}" data-date="${k}"><span class="ck">${CHECK}</span><span class="grow">${esc(x.ic || '')} ${esc(x.label)}</span>${hsx > 1 ? `<span class="hs">${hsx}🔥</span>` : ''}</button>`; }).join('')}</div>${heatmap(k)}</div>`;
+  return `<div class="card" id="habits"><div class="row between" style="margin-bottom:12px"><button class="icon-btn tap" data-a="habDay" data-v="-1" aria-label="Previous day">‹</button><div style="text-align:center"><div style="font-weight:750" id="habDateLbl">${isT ? 'Today' : fmtDow(k)}</div><div class="xs dim">${hs.filter(x => log[x.id]).length}/${hs.length} done</div></div><button class="icon-btn tap" data-a="habDay" data-v="1" aria-label="Next day" ${isT ? 'disabled style="opacity:.3"' : ''}>›</button></div><div class="ringwrap"><div class="ring">${Charts.ring(pct)}<div class="ctr"><div><b>${Math.round(pct * 100)}%</b><span>${isT ? 'today' : fmtDate(k)}</span></div></div></div><div><div class="streak" id="streak">✨ ${st} day${st === 1 ? '' : 's'}</div><div class="small muted">Habit streak · ≥75% of all habits</div></div></div><div class="habits">${hs.map(x => { const hsx = habitStreak(x.id); return `<button class="habit ${log[x.id] ? 'on' : ''}" data-a="habit" data-id="${esc(x.id)}" data-date="${k}"><span class="ck">${CHECK}</span><span class="grow">${esc(x.ic || '')} ${esc(x.label)}</span>${hsx > 1 ? `<span class="hs">${hsx}🔥</span>` : ''}</button>`; }).join('')}</div>${heatmap(k)}</div>`;
 }
 function heatmap(sel) {
   const start = weekStart(PLAN_START), t = today(); let cols = '';
@@ -75,8 +75,8 @@ function heatmap(sel) {
 VIEWS.today = function () {
   const k = today(), day = dayPlan(k), b = S.body[k] || {}, ft = foodTotals(k), prot = proteinFor(k), T = S.settings;
   let h = hdr(fmtLong(k), 'Today');
-  if (k >= PLAN_START) h += doNowCard(k) + nnBanner();
-  if (S.active && (!day || !day.sessions.some(s => s.key === S.active.sessionKey))) h += `<div class="tip info"><div class="ic">⏱️</div><div class="grow">Workout in progress: <b>${esc(S.active.title)}</b><div style="margin-top:8px"><button class="btn sm tap" data-a="resume">Resume</button></div></div></div>`;
+  if (k >= PLAN_START) h += doNowCard(k);
+  if (k < PLAN_START && S.active && (!day || !day.sessions.some(s => s.key === S.active.sessionKey))) h += `<div class="tip info"><div class="ic">⏱️</div><div class="grow">Workout in progress: <b>${esc(S.active.title)}</b><div style="margin-top:8px"><button class="btn sm tap" data-a="resume">Resume</button></div></div></div>`;
   h += scheduleBanners(k);
   if (k >= PLAN_START) h += nnCard(k) + checkinCard(k);
   let blockCard = '';
@@ -86,6 +86,7 @@ VIEWS.today = function () {
   }
   if (!day) h += `<div class="card hero"><span class="chip grad">${k < PLAN_START ? 'Starts Oct 5' : 'Plan complete'}</span><div class="ttl">${k < PLAN_START ? 'Plan starts Monday, Oct 5' : '🏁 Program complete!'}</div></div>`;
   else {
+    h += `<h2 class="sec" id="planSec">Today’s plan <small>${day.off ? 'Day off' : day.sessions.length ? day.sessions.reduce((a, s) => a + (s.min || 0), 0) + ' min' : 'Rest'}</small></h2>`;
     h += contextTips(k);
     if (day.off) h += `<div class="card"><span class="chip">Day off</span><div class="ttl2">📅 ${esc(day.off)}</div><div class="small muted">No training planned. Move today's sessions from the banner above if you want to make them up.</div></div>`;
     if (day.meta.test && day.meta.testKey && !day.sessions.some(s => s.kind === 'test')) h += `<div class="tip goldbox"><div class="ic">📋</div><div class="grow">Test week (${TESTS.find(t => t.key === day.meta.testKey).label}). Fit the mile, 100 yd swim, pull-ups & broad jump into this week.<div style="margin-top:8px"><button class="btn sm sec tap" data-a="testSheet" data-key="${day.meta.testKey}">${testDone(day.meta.testKey) ? 'Edit results' : 'Enter results'}</button></div></div></div>`;
@@ -93,16 +94,22 @@ VIEWS.today = function () {
     if (!ss.length && !day.off) h += `<div class="card hero"><span class="chip">Rest day</span><div class="ttl">Recover 💤</div><div class="small muted">Sleep 8h+, hit protein, do the 10-min mobility routine. Recovery is when you adapt.</div></div>`;
     ss.forEach((s, i) => h += sessionCard(day, s, i === 0));
   }
-  h += devoCard(k) + blockCard;
-  h += `<h2 class="sec">All habits</h2>` + habitsCard();
-  h += `<h2 class="sec">Fuel today <button class="btn sm sec tap" data-a="goTab" data-tab="food">Open Food</button></h2><div class="card"><div class="row between small"><span>Calories</span><b>${fmtNum(ft.kcal)} / ${fmtNum(T.kcal)}</b></div><div class="pbar"><i style="width:${Math.min(100, ft.kcal / T.kcal * 100)}%"></i></div><div class="row between small" style="margin-top:12px"><span>Protein</span><b>${prot} / ${T.protein} g</b></div><div class="pbar"><i class="pgreen" style="width:${Math.min(100, prot / T.protein * 100)}%"></i></div><div class="qadd" style="margin-top:12px"><button class="tap" data-a="quickProt" data-v="25">+25 g protein</button><button class="tap" data-a="quickProt" data-v="40">+40 g</button><button class="tap" data-a="quickProt" data-v="50">+50 g</button></div></div>`;
+  h += `<h2 class="sec">Fuel today <button class="btn sm sec tap" data-a="goTab" data-tab="food">Open Food</button></h2><div class="card" id="fuelCard"><div class="fuel-sum"><div><b>${fmtNum(Math.max(0, T.kcal - ft.kcal))}</b><span>kcal left</span></div><div><b>${Math.max(0, T.protein - prot)} g</b><span>protein to go</span></div></div><div class="row between small"><span>Calories</span><b>${fmtNum(ft.kcal)} / ${fmtNum(T.kcal)}</b></div><div class="pbar"><i style="width:${Math.min(100, ft.kcal / T.kcal * 100)}%"></i></div><div class="row between small" style="margin-top:12px"><span>Protein</span><b>${prot} / ${T.protein} g</b></div><div class="pbar"><i class="pgreen" style="width:${Math.min(100, prot / T.protein * 100)}%"></i></div><div class="qadd" style="margin-top:12px"><button class="tap" data-a="quickProt" data-v="25">+25 g protein</button><button class="tap" data-a="quickProt" data-v="40">+40 g</button><button class="tap" data-a="quickProt" data-v="50">+50 g</button></div></div>`;
   h += `<h2 class="sec">Quick log</h2><div class="card"><div class="field"><label>Weight (${wu()})</label><div class="row"><input class="inp grow" id="q-weight" type="number" inputmode="decimal" step="0.1" placeholder="${esc(U.wOut(lastWeight()))}" value="${esc(U.wOut(b.weight))}"><button class="btn sm tap" style="height:48px" data-a="saveWeight">Save</button></div></div>${hasKnee(S.profile) || b.knee != null ? `<div class="field" style="margin-top:14px"><label>Knee pain (0–10) ${b.knee != null ? `· <span style="color:${painColor(b.knee)}">${b.knee}/10</span>` : ''}</label><div class="pain" id="q-knee">${[...Array(11)].map((_, i) => `<button class="tap ${b.knee === i ? 'on' : ''}" style="${b.knee === i ? `background:${painColor(i)}` : ''}" data-a="knee" data-v="${i}">${i}</button>`).join('')}</div></div>` : ''}</div>`;
-  h += `<h2 class="sec">Daily 10-min mobility</h2><div class="card"><ul class="clean">${MOBILITY.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
-  h += `<h2 class="sec">Nutrition rules</h2><div class="card"><ul class="clean">${nutritionRules(S.profile, { kcal: T.kcal, protein: T.protein, perMeal: Math.round(T.protein / (S.profile.diet.meals || 4)) }).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
-  if (hasKnee(S.profile)) h += `<h2 class="sec">Knee rules</h2>${KNEE_RULES.map((r, i) => `<div class="tip ${i ? 'info' : 'bad'}"><div class="ic">${['🛑', '🏃', '⏱️', '☝️'][i]}</div><div>${esc(r)}</div></div>`).join('')}`;
-  h += `<div class="tip good"><div class="ic">🛡️</div><div>${esc(SLIP_RULE)}</div></div>`;
+  h += `<h2 class="sec">Devotional</h2>` + devoCard(k);
+  h += `<h2 class="sec">Habits <small>full log</small></h2>` + habitsCard();
+  if (blockCard) h += `<h2 class="sec">Program</h2>` + blockCard;
+  h += guideCard();
   return h;
 };
+function guideCard() {
+  const T = S.settings, sec = (id, ic, t, body) => `<details class="gsec" id="g-${id}"><summary><span>${ic}</span><span class="grow">${t}</span><i class="chev" aria-hidden="true"></i></summary><div class="gbody">${body}</div></details>`;
+  let g = sec('mobility', '🧘', 'Daily 10-min mobility', `<ul class="clean">${MOBILITY.map(x => `<li>${esc(x)}</li>`).join('')}</ul><button class="btn sm sec tap" style="margin-top:10px" data-a="mobSheet">Open as checklist</button>`);
+  g += sec('nutrition', '🥩', 'Nutrition rules', `<ul class="clean">${nutritionRules(S.profile, { kcal: T.kcal, protein: T.protein, perMeal: Math.round(T.protein / (S.profile.diet.meals || 4)) }).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`);
+  if (hasKnee(S.profile)) g += sec('knee', '🦵', 'Knee rules', `<ul class="clean">${KNEE_RULES.map((r, i) => `<li>${['🛑', '🏃', '⏱️', '☝️'][i] || '•'} ${esc(r)}</li>`).join('')}</ul>`);
+  g += sec('slip', '🛡️', 'If things slip', `<div class="small muted">${esc(SLIP_RULE)}</div>`);
+  return `<h2 class="sec">Guide</h2><div class="card guide" id="guide">${g}</div>`;
+}
 function lastWeight() { const w = weights(); return w.length ? w[w.length - 1].v : S.settings.startWeight; }
 
 ACT.habit = (el, d) => { const k = d.date || today(), l = S.habitLog[k] = S.habitLog[k] || {}; if (l[d.id]) delete l[d.id]; else l[d.id] = true; save(); haptic(l[d.id] ? 12 : 6); rerenderKeep(); if (l[d.id] && habitPct(k) === 1) { toast('All habits done 🔥'); confetti(); } };

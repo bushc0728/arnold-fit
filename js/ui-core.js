@@ -28,15 +28,17 @@ function closeSheet() { $('#sheet-root').innerHTML = ''; }
 ACT.closeSheet = () => closeSheet();
 
 function hdr(eyebrow, title) {
+  UI.title = title;
   return `<div class="hdr"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1></div><div class="row" style="gap:8px"><button class="icon-btn round tap" data-a="openCoach" aria-label="Coach chat">${CHAT}</button><button class="icon-btn round tap" data-a="goSettings" aria-label="Settings">${GEAR}</button></div></div>`;
 }
 const VIEWS = {};
 function render() {
   $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === UI.tab));
   $('#view').innerHTML = (VIEWS[UI.tab] || VIEWS.today)();
+  const tb = $('#tbTitle'); if (tb) tb.textContent = UI.title || '';
 }
 function rerenderKeep() { const y = scrollY; render(); scrollTo(0, y); }
-function goTab(tab) { UI.tab = tab; render(); window.scrollTo(0, 0); }
+function goTab(tab) { UI.tab = tab; render(); window.scrollTo(0, 0); document.body.classList.remove('scrolled'); }
 ACT.goSettings = () => { haptic(); goTab('settings'); };
 ACT.goTab = (el, d) => goTab(d.tab);
 
@@ -47,3 +49,9 @@ document.addEventListener('click', ev => {
   const fn = ACT[el.dataset.a]; if (fn) { if (el.tagName === 'A' && !el.getAttribute('href')) ev.preventDefault(); fn(el, el.dataset, ev); }
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); });
+
+/* v2.4: compact title bar on scroll, offline indicator, standalone flag */
+let scrollRaf = 0; addEventListener('scroll', () => { if (scrollRaf) return; scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; document.body.classList.toggle('scrolled', scrollY > 64); }); }, { passive: true });
+function netState() { const n = $('#net'); if (n) n.classList.toggle('show', navigator.onLine === false); }
+addEventListener('online', () => { netState(); toast('Back online ✓'); }); addEventListener('offline', netState);
+if ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone) document.documentElement.classList.add('standalone');

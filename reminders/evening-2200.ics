@@ -1,0 +1,21 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Arnold Fit//Evening reminder//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:arnoldfit-evening-2200@bushc0728.github.io
+DTSTAMP:20261007T040000Z
+DTSTART:20261007T220000
+DTEND:20261007T221000
+RRULE:FREQ=DAILY;UNTIL=20261231T235959
+SUMMARY:Arnold Fit · evening check-off
+DESCRIPTION:Open Arnold Fit and close out today's non-negotiables: training\, protein\, mobility\, devotional\, sleep. Never miss twice.
+URL:https://bushc0728.github.io/arnold-fit/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Arnold Fit · evening check-off
+TRIGGER:PT0M
+END:VALARM
+END:VEVENT
+END:VCALENDAR

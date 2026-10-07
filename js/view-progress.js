@@ -37,6 +37,7 @@ VIEWS.progress = function () {
   if (cs.status === 'need') h += `<div class="row"><div style="font-size:22px">🍽️</div><div class="small muted">Needs ≥3 weigh-ins in each of the last two 7-day windows to compare weekly averages.${cs.cur ? ` This week: ${cs.cur.n}.` : ''}</div></div>`;
   else h += `<div class="row between"><div><div class="small muted">Prior 7d → last 7d avg</div><div style="font-weight:800;font-size:20px">${U.wOut(cs.prev.v)} → ${U.wOut(cs.cur.v)} ${wu()}</div></div><span class="chip ${cs.status === 'hold' ? 'ok' : 'test'}">${cs.status === 'hold' ? 'Hold' : cs.status === 'down' ? '−150 kcal' : '+150 kcal'}</span></div><div class="small muted" style="margin:10px 0">${esc(cs.msg)}</div>${cs.status !== 'hold' ? `<button class="btn sm tap" data-a="applyKcal" data-v="${cs.to}">Apply ${fmtNum(cs.to)} kcal</button>` : ''}`;
   h += `<div class="xs dim" style="margin-top:10px">Rule: weekly avg drops &lt;0.5 lb → −150 kcal · &gt;1.5 lb → +150 kcal. Keep protein ≥${S.settings.protein} g.</div></div>`;
+  h += disciplineCard();
   const wa = Object.keys(S.body).filter(k => S.body[k].waist).sort().map(k => ({ x: xT(k), y: U.lOut(S.body[k].waist) }));
   TESTS.forEach(ts => { const v = S.tests[ts.key].waist; if (v && !wa.find(p => p.x === xT(ts.date))) wa.push({ x: xT(ts.date), y: U.lOut(v) }); });
   wa.sort((a, b) => a.x - b.x);
@@ -103,3 +104,12 @@ ACT.applyKcal = (el, d) => { S.kcalLog.push({ date: today(), from: S.settings.kc
 ACT.saveWaist = () => { const k = today(), v = $('#waist-in').value; if (!v) return toast('Enter waist first'); (S.body[k] = S.body[k] || {}).waist = +U.lIn(v).toFixed(2); save(); haptic(15); toast('Waist logged ✓'); rerenderKeep(); };
 ACT.liftSel = (el, d) => { UI.liftSel = d.v; haptic(); rerenderKeep(); };
 ACT.cardioSel = (el, d) => { UI.cardioSel = d.v; haptic(); rerenderKeep(); };
+
+/* v2.4: discipline — honest streak, weekly non-negotiable adherence, check-in history */
+function disciplineCard() {
+  const t = today(), cur = WEEKS.findIndex(m => t >= m.start && t <= m.end), st = nnStreak(), best = nnBest();
+  const weeks = WEEKS.map(m => m.start <= t ? weekAdh(m.start, t < m.end ? t : m.end).score : 0), wk = cur >= 0 ? weeks[cur] : 0;
+  const rows = checkinRows();
+  const tbl = rows.length ? `<div style="overflow-x:auto;margin-top:6px"><table class="ci" id="ciHist"><tr><th>Week of</th><th>Avg wt</th><th>Δ</th><th>Waist</th><th>Knee</th><th>Adh.</th></tr>${rows.map((r, i) => { const prev = rows[i + 1], d = prev && prev.avg && r.avg ? r.avg - prev.avg : null; return `<tr><td>${fmtDate(r.ws)}</td><td>${r.avg ? U.wOut(r.avg) : '—'}</td><td>${d == null ? '<span class="dim">—</span>' : `<span class="delta ${d <= 0 ? 'good' : 'bad'}">${d > 0 ? '+' : d < 0 ? '−' : ''}${U.wOut(Math.abs(d))}</span>`}</td><td>${r.waist != null ? U.lOut(r.waist) : '—'}</td><td>${r.knee != null ? r.knee : '—'}</td><td>${r.adh}%</td></tr>`; }).join('')}</table></div>` : `<div class="empty" id="ciHist">Your first weekly check-in shows up here after Sunday${t <= '2026-10-11' ? ' (Oct 11)' : ''} — weight avg, waist, knee and adherence, week by week.</div>`;
+  return `<h2 class="sec">Discipline <small>${nnIds().length} non-negotiables</small></h2><div class="card" id="discCard"><div class="disc-kpis"><div class="stat"><b>🔥 ${st}</b><span>Streak</span></div><div class="stat"><b>${best}</b><span>Best</span></div><div class="stat"><b>${wk}%</b><span>This week</span></div></div><div class="small muted" style="margin:14px 0 4px">Non-negotiable adherence per week</div>${Charts.bars({ id: 'nnw', labels: WEEKS.map(m => 'W' + m.wk), values: weeks, color: '#2EE6A6', color2: '#3DA9FC', fmt: v => Math.round(v) + '%', hi: cur, max: 100 })}<div class="row between" style="margin-top:16px"><div class="card-t">Weekly check-ins</div><span class="xs dim">${rows.length} saved</span></div>${tbl}</div>`;
+}

@@ -1,6 +1,6 @@
 /* boot */
 'use strict';
-render();
+render(); netState();
 if (!S.onboarded) openOnboard();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   const hadCtl = !!navigator.serviceWorker.controller; let reloaded = false;

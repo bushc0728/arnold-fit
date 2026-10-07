@@ -18,7 +18,8 @@
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="tabgrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="24" y2="24"><stop offset="0" stop-color="#FF7A3D"/><stop offset="1" stop-color="#FF2E63"/></linearGradient></defs></svg>
-<main id="view" aria-live="polite"></main>
+<header id="topbar" aria-hidden="true"><div class="tb-in" id="tbTitle"></div></header>
+<main id="view" aria-live="polite"><div class="boot" aria-label="Loading"><div class="oblogo">AF</div></div></main>
 <nav id="tabbar" aria-label="Tabs">
   <button data-tab="today" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span class="lbl">Today</span></button>
   <button data-tab="train"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="lbl">Train</span></button>
@@ -32,6 +33,7 @@
 <div id="onboard" class="overlay onboard hidden"></div>
 <div id="sheet-root"></div>
 <div id="toast" role="status"></div>
+<div id="net" role="status" aria-live="polite">Offline · everything still saves on this phone</div>
 <script src="js/data.js"></script>
 <script src="js/verses.js"></script>
 <script src="js/devotionals.js"></script>

@@ -31,7 +31,7 @@ const Charts = {
   bars(o) {
     const W = o.w || 350, H = o.h || 160, P = { l: 30, r: 6, t: 14, b: 22 };
     const n = o.labels.length; if (!n) return `<div class="empty">No data yet</div>`;
-    const mx = Math.max(1, ...o.values, ...(o.ghost || [0])) * 1.1;
+    const mx = o.max || Math.max(1, ...o.values, ...(o.ghost || [0])) * 1.1;
     const bw = (W - P.l - P.r) / n, Y = v => H - P.b - v / mx * (H - P.t - P.b);
     let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="bg-${o.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.color}"/><stop offset="1" stop-color="${o.color2 || o.color}" stop-opacity=".55"/></linearGradient></defs>`;
     for (let i = 0; i <= 3; i++) { const v = mx * i / 3, y = Y(v); s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.05)"/><text x="${P.l - 5}" y="${y + 3}" text-anchor="end">${o.fmt ? o.fmt(v) : Math.round(v)}</text>`; }
