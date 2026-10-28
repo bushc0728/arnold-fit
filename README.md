@@ -5,6 +5,30 @@ It's plain static files (vanilla JS, no build step, no backend). All data lives 
 
 **Live:** https://bushc0728.github.io/arnold-fit/
 
+## v2.9 — plan it yourself
+- **Plan my week**: one screen, Mon to Sun. Tap a chip per day: Push, Pull, Pull + Arms, Legs, Upper A/B/C, Full Body, Hockey, MTB, Run, Reset · 10k steps, Rest, plus your own sessions. You can also swap two days. For example, "today reset, tomorrow push, Fri pull/arms, Sat rest, Sun hockey" takes about 5 taps.
+- **Tap any day on the Plan tab** to get the same quick picker. Choose **Just this week** or **Every week from now**. "↺ Arnold's plan" puts that day back.
+- **Edit sessions** (✎ on the Plan tab or any day sheet):
+  - Swap an exercise from the library (grouped by muscle) or type a custom one.
+  - Add or remove exercises, and move them with ↑/↓.
+  - Change sets, reps, target weight, RPE and rest.
+  - Choose this week only or this week plus all future weeks.
+  - Create a new session, or "Reset to Arnold's plan" (with a confirm step).
+- Edits flow into Today, Plan, Weeks ahead, the progression nudges and sets per muscle. Deload and lighter weeks still scale your edited sets (−1 set, RPE 7).
+- **Logged workouts never change.** Edits only apply from today forward, and past days are locked.
+- **Christmas goals** (Dec 25 countdown) sit at the top of Progress, with a slim line on Today:
+  - Weigh about 205 lb (7-day average).
+  - 30+ lifts since Oct 28, with the pace you need per week.
+  - Beat your last top set on bench, row, shoulder press, leg press and RDL.
+- **My maxes** (Progress or More): lift, weight, reps and date, all editable.
+
+### Where your plan edits live (and why updates won't erase them)
+- Your plan edits are saved on this phone under their **own** storage key, `arnoldfit.plan.v1`. It is separate from your logged data in `arnoldfit.v1`.
+- App updates only change the code files and never write to that key. Your edited sessions and days carry over to every future version.
+- The first time v2.9 loaded, it made a one-time backup of your data at `arnoldfit.v1.backup-v2.8`.
+- If the plan key were ever unreadable, it is moved aside to `arnoldfit.plan.v1.rescue-<time>` rather than deleted.
+- "Reset everything to Arnold's plan" at the bottom of the Plan tab clears only your plan edits. It never touches your history.
+
 ## v2.8 — Plan tab, food out
 
 - **Food UI removed** (tab, tracker, search, scanner, My Meals, protein strip, kcal/protein in the nightly log, food nudges). Food data stays in localStorage, just hidden.
