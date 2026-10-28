@@ -5,6 +5,15 @@ It's plain static files (vanilla JS, no build step, no backend). All data lives 
 
 **Live:** https://bushc0728.github.io/arnold-fit/
 
+## v2.7 (Oct 27, 2026) — "too much in my app": built around the workout
+- **4 tabs:** Today · Food · Progress · More. Program, Devotional, Habits, Coach, Motivation, Guide, Settings and Data backup live under **More** (sub-pages have a ‹ back button).
+- **Today ≈ one screen:** date + 📅 → (one-time import card / one contextual tip such as the 48 h legs warning) → **workout hero** with the exercise list visible (target sets×reps @ weight + last time per lift), one big ▶ Start workout, and Already did it · Pick another · Minimum day · Log activity → checklist icon row (Train, Protein, Mobility, Devo, Sleep) → Grow strip (🔥 streak · Bench → 225 · protein). Weekly recap shows Sun/Mon only (dismissible). 🌙 Nightly log only in the evening.
+- **Logger/summary:** less text in the logger; the summary adds **vs last time** (volume Δ, sets, top set per lift last → now) next to PRs.
+- **Progress, strength first:** bench card + **Workout history** (date, session, top sets, PRs; tap = summary), main-lift e1RM, weekly recap, weight & waist, then "More stats" folds (weekly sets per muscle, check-ins, calories, cardio, habits, knee, tests).
+- **Food:** ring + protein, one ＋ Log food (search/scan/quick add inside), 4 meals, Week/Day toggle.
+- Nothing deleted: every old feature is still reachable. Data: only adds `S.v27.recapSeen`; no migration, v2.6 data loads untouched.
+- Screenshots: `screenshots/v2.7/` (before-*, after-*, before-vs-after-today.png).
+
 ## v2.6 (Oct 27, 2026) — "simple, fun, easy, but most of all GROW ME"
 
 - **Food tab (built-in calorie tracker, no MyFitnessPal needed):** kcal ring vs 2,550, protein vs 190 g, carbs and fat. It has Breakfast/Lunch/Dinner/Snack cards and a Day/Week view (avg kcal, avg protein, days at the protein goal).
