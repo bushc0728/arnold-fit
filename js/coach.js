@@ -183,6 +183,15 @@ function cmdTarget(t) {
   const tg = withActive(() => nextTarget(id)); return { text: tg ? `**${EX[id].n}** next: **${withActive(() => targetText(id))}** — ${tg.note}.` : `No ${EX[id].n} logged yet — first session sets your baseline.` };
 }
 function cmdGoals() {
+  if (S.profile.goals.includes('hockey')) { // v2.5 plan
+    const st = S.settings, cur = (rolling7().slice(-1)[0] || {}).v, wt = waistTrend(), bn = benchNow(), t0 = withActive(() => nextTarget('flat_bench', { role: 'bench' }));
+    let x = `**#1 Look better — waist is the main metric.** Chest, arms, shoulders up, waist down.${wt ? ` Waist now **${U.lOut(wt.last)} ${lu()}**.` : ' Log your waist at the Sunday check-in.'}`;
+    x += `\n**Weight:** ${U.wOut(st.startWeight)} → ~${U.wOut(st.goalWeight)} ${U.w()} by Dec 31 while adding muscle${cur ? ` (7-day avg now ${U.wOut(cur)})` : ''}. ~2,500–2,600 kcal, ~${st.protein} g protein.`;
+    x += `\n**Bench 225 for reps:** ${bn ? `e1RM **${U.wOut(bn.v, 0)} ${U.w()}**` : 'no baseline yet'}.${t0 ? ` Next heavy bench: **${withActive(() => targetText('flat_bench', { role: 'bench' }))}**.` : ''} Mon Upper A = heavy top set + back-offs, Fri Upper C = paused bench 3×5–6.`;
+    x += `\n**Triathlon** is a future goal — no swimming for now.\n**Week:** Mon Upper A · Tue MTB · Wed short Lower · Thu Upper B (shoulders/arms) · Fri Upper C · Sat 25–30′ run or MTB · Sun hockey. Swaps are fine, keep ≥2 lifts a week.`;
+    x += `\n**Food:** 3 home-cooked meals × 55–60 g protein + 1 high-protein snack ≈ 190 g, no shakes. Weekends keep the 3 protein meals. Drinks: max 1 night/week, 3–4, protein meal first.`;
+    return { text: x };
+  }
   const g = benchGoal(), cur = (rolling7().slice(-1)[0] || {}).v, st = S.settings, P = S.profile;
   const t = withActive(() => nextTarget('flat_bench', { role: 'bench' }));
   let txt = `**Goal #1 — fat loss:** ${U.wOut(st.startWeight)} → ~${U.wOut(st.goalWeight)} ${U.w()} by Dec 31${cur ? ` (7-day avg now ${U.wOut(cur)})` : ''}. That stays the priority.`;

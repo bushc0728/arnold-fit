@@ -1,8 +1,9 @@
-/* Train tab: this week's schedule (move / skip / day off), program overview, all weeks */
+/* Train tab: this week's schedule (move / skip / day off / v2.5 log + swap), program overview, all weeks */
 'use strict';
 function statusChip(s) {
   const st = sessStatus(s);
   if (st === 'done') return sessBadge(s);
+  if (st === 'swapped') { const r = s.replaced || replacedBy(s.key); return `<span class="chip swapchip">↪ ${esc(r ? r.title : 'Swapped')}</span>`; }
   if (st === 'skipped') return '<span class="chip">Skipped</span>';
   if (S.active && S.active.sessionKey === s.key) return sessBadge(s);
   return '';
@@ -18,12 +19,13 @@ VIEWS.train = function () {
     if (!dp) h += '<div class="small dim">—</div>';
     else {
       if (dp.off) h += `<div class="small" style="color:var(--hockey);font-weight:700">📅 Day off · ${esc(dp.off)}</div>`;
-      if (!dp.sessions.length) h += `<div class="small dim">Rest</div>`;
+      if (!dp.sessions.length && !qaExtras(k).length) h += `<div class="small dim">Rest</div>`;
+      qaExtras(k).forEach(w => { h += `<div class="wks done"><div class="row" style="gap:8px"><span class="dot c-${w.color}"></span><span class="grow wkt">${esc(w.title)} <span class="xs dim">· ${w.cardio.dur || 0}′${w.cardio.rpe ? ' · effort ' + w.cardio.rpe : ''}</span></span><span class="chip swapchip">＋ extra</span></div><div class="row wkact"><button class="tap" data-a="cardioDetails" data-id="${w.id}">Details</button><button class="tap" data-a="undoSwap" data-id="${w.id}">Remove</button></div></div>`; });
       dp.sessions.forEach(s => {
         const st = sessStatus(s), canAct = st === 'todo' && k >= t;
-        h += `<div class="wks ${st}"><div class="row" style="gap:8px"><span class="dot c-${s.color}"></span><span class="grow wkt">${esc(s.title)}${s.movedFrom ? ` <span class="xs" style="color:var(--swim)">↪ from ${DOW[dow(s.movedFrom)]}</span>` : ''}</span>${statusChip(s)}</div>${s.kind !== 'test' ? `<div class="row wkact">${st === 'done' ? (s.kind === 'cardio' ? `<button class="tap" data-a="cardioDetails" data-id="${sessionDone(s.key).id}">Details</button>` : `<button class="tap" data-a="viewSummary" data-id="${sessionDone(s.key).id}">Summary</button>`) : s.kind === 'cardio' && st === 'todo' && k <= t ? `<button class="tap mdone" data-a="quickDone" data-day="${k}" data-key="${s.key}">Mark done ✓</button>` : ''}${st === 'done' ? '' : canAct || k === t ? `<button class="tap" data-a="${S.active && S.active.sessionKey === s.key ? 'resume' : 'start'}" data-day="${k}" data-key="${s.key}">${S.active && S.active.sessionKey === s.key ? 'Resume' : s.kind === 'cardio' ? 'Log' : 'Start'}</button>` : ''}${st !== 'done' ? `<button class="tap" data-a="moveSheet" data-key="${s.key}">Move</button>` : ''}${st === 'skipped' ? `<button class="tap" data-a="unskip" data-key="${s.key}">Unskip</button>` : st === 'todo' ? `<button class="tap" data-a="skip" data-key="${s.key}">Skip</button>` : ''}${s.movedFrom && st !== 'done' ? `<button class="tap" data-a="unmove" data-key="${s.key}">Undo move</button>` : ''}</div>` : `<div class="row wkact"><button class="tap" data-a="testSheet" data-key="${s.testKey}">Results</button></div>`}</div>`;
+        h += `<div class="wks ${st}"><div class="row" style="gap:8px"><span class="dot c-${s.color}"></span><span class="grow wkt">${esc(s.title)}${s.movedFrom ? ` <span class="xs" style="color:var(--swim)">↪ from ${DOW[dow(s.movedFrom)]}</span>` : ''}</span>${statusChip(s)}</div><div class="row wkact">${trainActs(s, k, t, st, canAct)}</div></div>`;
       });
-      if (k >= t) h += `<button class="xs dim offbtn tap" data-a="toggleOff" data-day="${k}">${dp.off ? 'Clear day off' : '+ Mark day off'}</button>`;
+      h += `<div class="row dayx">${canBackdate(k) ? `<button class="tap offbtn" data-a="qaOpen" data-date="${k}" data-extra="1">＋ Activity</button>` : ''}${k >= t ? `<button class="tap offbtn" data-a="toggleOff" data-day="${k}">${dp.off ? 'Clear day off' : '+ Day off'}</button>` : ''}</div>`;
     }
     h += `</div></div>`;
   }
@@ -31,10 +33,12 @@ VIEWS.train = function () {
   h += `<div class="card coachcta tap" data-a="openCoach"><div class="row" style="gap:12px"><div class="coach-av">${CHAT}</div><div class="grow"><b>Coach chat</b><div class="small muted">“bench 185 for 5, 5, 4” · “swap the leg press for step-ups” · “skip laterals today”</div></div><span class="muted">›</span></div></div>`;
   // program
   const P = S.profile, tpl = weeklyTemplate(P);
-  h += `<h2 class="sec">Your program <button class="btn sm sec tap" data-a="retakeQuiz">Retake quiz</button></h2><div class="card"><div class="tplrow" id="tplPreview">${tpl.map((c, i) => `<div class="tpl ${c ? '' : 'rest'}"><span>${DOW[i][0]}</span><b>${c ? CODE_NAME[c].replace(' + ', '+').replace('Long aerobic', 'Long') : 'Rest'}</b></div>`).join('')}</div><div class="small muted" style="margin-top:10px">${esc(P.style[0].toUpperCase() + P.style.slice(1))} · ${P.days} days/week · ${P.sessionMin}-min sessions · ${(P.goals || []).map(g => GOAL_LABEL[g]).join(', ')}</div><div class="small muted" style="margin-top:6px">Science: double progression (reps → load), block periodization (Base → Build → Sharpen) with deloads, and compound lifts first.</div></div>`;
-  h += `<div class="blocks">${BLOCKS.map(b => `<div class="blk ${b.grad}"><span class="chip">Block ${b.n} · ${fmtDate(b.start)}–${fmtDate(b.end)}</span><h3>${b.name}</h3><p>${esc(b.desc)}</p></div>`).join('')}</div>`;
-  h += `<div class="tip good" style="margin-top:12px"><div class="ic">🛡️</div><div>${esc(SLIP_RULE)}</div></div>`;
-  h += `<h2 class="sec">All weeks</h2>`;
+  h += `<div class="tip info"><div class="ic">🏒</div><div class="grow small">${esc(TRAIN_RULE)}</div></div>`;
+  let prog = `<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn sm sec tap" data-a="retakeQuiz">Retake quiz</button></div><div class="card"><div class="tplrow" id="tplPreview">${tpl.map((c, i) => `<div class="tpl ${c ? '' : 'rest'}"><span>${DOW[i][0]}</span><b>${c ? CODE_NAME[c].replace(' + ', '+').replace('Long aerobic', 'Long') : 'Rest'}</b></div>`).join('')}</div><div class="small muted" style="margin-top:10px">${esc(P.style[0].toUpperCase() + P.style.slice(1))} · ${P.days} days/week · ${P.sessionMin}-min sessions · ${(P.goals || []).map(g => GOAL_LABEL[g]).join(', ')}</div><div class="small muted" style="margin-top:6px">Science: double progression (reps → load), block periodization (Base → Build → Sharpen) with deloads, and compound lifts first.</div></div>`;
+  prog += `<div class="blocks">${BLOCKS.map(b => `<div class="blk ${b.grad}"><span class="chip">Block ${b.n} · ${fmtDate(b.start)}–${fmtDate(b.end)}</span><h3>${b.name}</h3><p>${esc(b.desc)}</p></div>`).join('')}</div>`;
+  prog += `<div class="tip good" style="margin-top:12px"><div class="ic">🛡️</div><div>${esc(SLIP_RULE)}</div></div>`;
+  h += foldSec('tprog', '🗓️', 'Your program', `${(P.goals || []).includes('hockey') ? 'New plan from Nov 2' : P.days + ' days/week'}`, prog, false);
+  let allw = '';
   WEEKS.forEach(m2 => {
     let tot = 0, done = 0; const days = [];
     for (let i = 0; i < 7; i++) {
@@ -45,10 +49,28 @@ VIEWS.train = function () {
       days.push(`<button class="day tap ${k === t ? 'today' : ''} ${all ? 'done' : ''} ${dp.off ? 'offd' : ''}" data-a="daySheet" data-day="${k}"><span>${DOW[i][0]}</span><span class="dn">${pkey(k).getDate()}</span><span class="pips">${dp.sessions.map(s => `<i class="c-${s.color}"></i>`).join('')}</span></button>`);
     }
     const cur = t >= m2.start && t <= m2.end;
-    h += `<div class="card week ${cur ? 'cur' : ''}"><div class="row between"><div><div class="wt">Week ${m2.wk} <span class="muted small" style="font-weight:600">· ${fmtDate(m2.start)}–${fmtDate(m2.end)}</span></div><div class="row wrap" style="gap:5px;margin-top:6px"><span class="chip">${m2.block.name}</span>${m2.deload ? '<span class="chip deload">Deload</span>' : ''}${m2.test ? '<span class="chip test">Test</span>' : ''}${m2.finals ? '<span class="chip finals">Finals</span>' : ''}${cur ? '<span class="chip grad">Now</span>' : ''}</div></div><div style="text-align:right"><div style="font-weight:800;font-size:18px">${done}/${tot}</div><div class="xs dim">sessions</div></div></div>${m2.note ? `<div class="small muted" style="margin-top:8px">${esc(m2.note)}</div>` : ''}<div class="days">${days.join('')}</div><div class="pbar"><i style="width:${tot ? done / tot * 100 : 0}%"></i></div></div>`;
+    allw += `<div class="card week ${cur ? 'cur' : ''}"><div class="row between"><div><div class="wt">Week ${m2.wk} <span class="muted small" style="font-weight:600">· ${fmtDate(m2.start)}–${fmtDate(m2.end)}</span></div><div class="row wrap" style="gap:5px;margin-top:6px"><span class="chip">${m2.block.name}</span>${m2.deload ? '<span class="chip deload">Deload</span>' : ''}${m2.test ? '<span class="chip test">Test</span>' : ''}${m2.finals ? '<span class="chip finals">Finals</span>' : ''}${cur ? '<span class="chip grad">Now</span>' : ''}</div></div><div style="text-align:right"><div style="font-weight:800;font-size:18px">${done}/${tot}</div><div class="xs dim">sessions</div></div></div>${m2.note ? `<div class="small muted" style="margin-top:8px">${esc(m2.note)}</div>` : ''}<div class="days">${days.join('')}</div><div class="pbar"><i style="width:${tot ? done / tot * 100 : 0}%"></i></div></div>`;
   });
+  h += foldSec('tweeks', '📆', 'All weeks', `${WEEKS.length} weeks · tap a day`, allw, false);
   return h;
 };
+function trainActs(s, k, t, st, canAct) { // v2.5 week-row buttons (≥48 px): log / swap past days within 7 days
+  if (s.kind === 'test') return `<button class="tap" data-a="testSheet" data-key="${s.testKey}">Results</button>`;
+  const b = (a, label, extra = '', cls = '') => `<button class="tap ${cls}" data-a="${a}" ${extra}>${label}</button>`;
+  const act = S.active && S.active.sessionKey === s.key;
+  if (st === 'done') { const w = sessionDone(s.key); return s.kind === 'cardio' ? b('cardioDetails', 'Details', `data-id="${w.id}"`) : b('viewSummary', 'Summary', `data-id="${w.id}"`); }
+  if (st === 'swapped') { const r = s.replaced || replacedBy(s.key); return (r ? b('cardioDetails', 'Details', `data-id="${r.id}"`) : '') + b('undoSwap', 'Undo swap', `data-id="${r ? r.id : ''}"`); }
+  let h = '';
+  const back = canBackdate(k);
+  if (back && st === 'todo') h += s.kind === 'cardio' ? b('quickDone', 'Done ✓', `data-day="${k}" data-key="${s.key}"`, 'mdone') : b('liftLog', 'Log ✓', `data-day="${k}" data-key="${s.key}"`, 'mdone');
+  if (canAct || k === t) h += b(act ? 'resume' : 'start', act ? 'Resume' : s.kind === 'cardio' ? 'Log' : 'Start', `data-day="${k}" data-key="${s.key}"`);
+  if (back && (st === 'todo' || st === 'skipped')) h += b('qaOpen', '↪ Swap', `data-date="${k}" data-key="${s.key}"`);
+  h += b('moveSheet', 'Move', `data-key="${s.key}"`);
+  if (st === 'skipped') h += b('unskip', 'Unskip', `data-key="${s.key}"`);
+  else if (st === 'todo') h += b('skip', 'Skip', `data-key="${s.key}"`);
+  if (s.movedFrom) h += b('unmove', 'Undo move', `data-key="${s.key}"`);
+  return h;
+}
 function daySheet(k) {
   const dp = dayPlan(k); if (!dp) return;
   let h = `<div class="small muted">Week ${dp.wk} · Block ${dp.block.n} ${dp.block.name}</div><h3>${fmtLong(k)}</h3><div class="row wrap" style="gap:6px;margin:8px 0 14px">${dp.meta.deload ? '<span class="chip deload">Deload</span>' : ''}${dp.meta.test ? '<span class="chip test">Test week</span>' : ''}${dp.meta.finals ? '<span class="chip finals">Finals</span>' : ''}${dp.off ? `<span class="chip finals">Day off · ${esc(dp.off)}</span>` : ''}${k === today() ? '<span class="chip grad">Today</span>' : ''}</div>`;

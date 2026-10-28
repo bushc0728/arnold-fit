@@ -19,8 +19,9 @@ function weekAgg() {
 VIEWS.progress = function () {
   const t = today(), ws = weights(), r7 = rolling7(), pj = projection(), goal = S.settings.goalWeight;
   let h = hdr(`Goal ${U.wOut(goal)} ${wu()} by Dec 31`, 'Progress');
+  h += weekSumCard(t, true).replace('<h2 class="sec">', '<h2 class="sec first">') + `<h2 class="sec">Weight trend <small>+ food averages</small></h2>`; // v2.5
   const cur = r7.length ? r7[r7.length - 1].v : null, start = S.settings.startWeight;
-  h += `<div class="card"><div class="row between"><div><div class="small muted">Weight · 7-day avg</div><div class="kpi">${cur ? U.wOut(cur) : '—'}<small>${wu()}</small></div></div><div style="text-align:right">${cur ? `<div class="delta ${cur <= start ? 'good' : 'bad'}">${cur <= start ? '▼' : '▲'} ${U.wOut(Math.abs(start - cur))} ${wu()} from ${U.wOut(start)}</div><div class="small muted">${cur > goal ? U.wOut(cur - goal) + ' ' + wu() + ' to go' : 'Goal reached 🎉'}</div>` : '<div class="small muted">Log weight on Today</div>'}</div></div>`;
+  h += `<div class="card"><div class="row between"><div><div class="small muted">Weight · 7-day avg</div><div class="kpi">${cur ? U.wOut(cur) : '—'}<small>${wu()}</small></div></div><div style="text-align:right">${cur ? `<div class="delta ${cur <= start ? 'good' : 'bad'}">${cur <= start ? '▼' : '▲'} ${U.wOut(Math.abs(start - cur))} ${wu()} from ${U.wOut(start)}</div><div class="small muted">${cur > goal ? U.wOut(cur - goal) + ' ' + wu() + ' to go' : 'Goal reached 🎉'}</div>` : '<div class="small muted">Log weight on Today</div>'}</div></div>${fuelAvgHtml()}`;
   const series = [{ pts: r7.map(p => ({ x: xT(p.k), y: U.wOut(p.v) })), color: '#FF2E63', width: 3, dots: false }, { pts: ws.map(p => ({ x: xT(p.k), y: U.wOut(p.v) })), color: '#FF9A6B', line: false, area: false, r: 2.6, dotOpacity: .6 }];
   const xMax = xT(PLAN_END) + 3;
   if (pj && pj.date && cur) { const endX = Math.min(xT(pj.date), xMax); series.push({ pts: [{ x: xT(pj.last), y: U.wOut(cur) }, { x: endX, y: U.wOut(cur + pj.slope * (endX - xT(pj.last))) }], color: '#FFC145', dash: '5 5', width: 2, dots: false, area: false }); }

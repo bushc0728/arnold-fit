@@ -1,4 +1,4 @@
-/* Arnold Fit v2.4 — discipline layer: daily non-negotiables (customizable), honest streak, never-miss-twice,
+/* Arnold Fit v2.5 — discipline layer: daily non-negotiables (customizable), honest streak, never-miss-twice,
    evening check-off, Sunday check-in + history, coach commands */
 'use strict';
 const NN_DEFAULT = ['train', 'protein', 'mobility', 'devo', 'sleep'];
@@ -14,7 +14,7 @@ function nnIds() {
 function nnItem(id, k) {
   const l = S.habitLog[k] || {};
   if (id === 'train') {
-    const d = dayPlan(k), ss = d && !d.off ? d.sessions : [], sOk = s => sessStatus(s) === 'done' || !!(S.schedule.moves || {})[s.key];
+    const d = dayPlan(k), ss = d && !d.off ? d.sessions : [], sOk = s => ['done', 'swapped'].includes(sessStatus(s)) || !!(S.schedule.moves || {})[s.key]; // v2.5: a quick-add swap (hockey/ride) counts as training
     const meta = ss.length ? `${ss.filter(sOk).length}/${ss.length} session${ss.length > 1 ? 's' : ''}` : 'rest day';
     return { id, ic: '🏋️', label: `Training · ${ss.length ? meta : 'rest day (recover)'}`, short: 'Training', meta, ok: !ss.length || ss.every(sOk), auto: true };
   }
@@ -45,13 +45,14 @@ function doNowCard(k) {
   let ic = '✅', t = 'All non-negotiables done', sub = 'Day won. Protect sleep tonight.', act = '', extra = '';
   if (S.active) { ic = '⏱️'; t = `Finish ${esc(S.active.title)}`; sub = 'Workout in progress — pick up where you left off.'; act = `<button class="btn tap" data-a="resume">Resume workout</button>`; }
   else if (eve && !nn.all) {
-    const open = nn.items.filter(i => !i.ok); ic = '🌙'; t = 'Evening check-off'; sub = `${open.length} left — close out the day honestly.`;
+    const open = nn.items.filter(i => !i.ok); ic = '🌙'; t = 'Nightly log'; sub = `${open.length} left — close out the day honestly. Played hockey or rode instead? Log it as a swap.`;
+    act = `<button class="btn tap" data-a="nightly" data-date="${k}">🌙 Open nightly log · ~30 s</button>`;
     extra = `<div class="dn-chips">${open.map(i => i.id === 'train' ? (todo[0] ? `<button class="chip tap" data-a="nnGoSess" data-key="${todo[0].key}">${i.ic} ${esc(todo[0].title)}</button>` : '') : i.id === 'devo' ? `<button class="chip tap" data-a="openDevo" data-k="${k}">${i.ic} Devotional</button>` : `<button class="chip tap" data-a="nnTog" data-id="${i.id}" data-date="${k}">${i.ic} ${esc(i.short)} ✓</button>`).join('')}</div>`;
   }
   else if (!D.commit[k] && !nn.all) { ic = '🤝'; t = 'Commit to today'; sub = `${nn.total - nn.n} non-negotiable${nn.total - nn.n === 1 ? '' : 's'} to hit${todo.length ? ` · first up: ${esc(todo[0].title)}` : ''}.`; act = `<button class="btn tap" data-a="nnCommit">I commit to today</button>`; }
   else if (todo.length) { ic = todo[0].kind === 'lift' ? '🏋️' : todo[0].kind === 'test' ? '📋' : { run: '🏃', swim: '🏊', bike: '🚴', hockey: '🏒', walk: '🚶' }[todo[0].cardio && todo[0].cardio.mode] || '🏋️'; t = esc(todo[0].title); sub = `~${todo[0].min} min${todo.length > 1 ? ` · +${todo.length - 1} more today` : ''}`; act = `<button class="btn tap" data-a="nnGoSess" data-key="${todo[0].key}">Let’s go</button>`; }
   else if (!nn.all) { const i = nn.items.find(x => !x.ok); ic = i.ic; t = esc(i.short); sub = 'Next non-negotiable.'; act = nnBtn(i, k); }
-  return `<section class="card donow" id="doNow" aria-label="Do now"><div class="row between"><span class="chip grad">Do now</span>${nnPips(nn)}</div>${nnBanner()}<div class="dn-main"><div class="dn-ic" aria-hidden="true">${ic}</div><div class="grow"><div class="dn-t">${t}</div><div class="dn-s">${sub}</div></div></div>${extra}${act ? `<div class="dn-act">${act}</div>` : ''}</section>`;
+  return `<section class="card donow" id="doNow" aria-label="Do now"><div class="row between"><span class="chip grad">Do now</span>${nnPips(nn)}</div>${nnBanner()}<div class="dn-main"><div class="dn-ic" aria-hidden="true">${ic}</div><div class="grow"><div class="dn-t">${t}</div><div class="dn-s">${sub}</div></div></div>${act ? `<div class="dn-act">${act}</div>` : ''}${extra}</section>`;
 }
 function nnBtn(i, k) {
   if (i.id === 'train') return `<button class="btn tap" data-a="goTab" data-tab="train">Open Train</button>`;

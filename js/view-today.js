@@ -21,6 +21,11 @@ function sessionLines(s, mod, k) {
   if (s.kind === 'test') return `<ul class="clean">${TEST_FIELDS.map(f => `<li>${f.label}</li>`).join('')}</ul>`;
   return '';
 }
+function exFold(s, inner, hero) { // v2.5: long exercise lists / cardio steps collapse (open only for a to-do hero session during the day)
+  const st = sessStatus(s), n = s.kind === 'lift' ? slotsFor(s.tpl, S.profile).length : 0, id = 'ex-' + s.key, open = UI.fold[id] ?? (hero && st === 'todo' && !isEvening() && s.date >= today());
+  const lbl = s.kind === 'lift' ? `${n} exercises · targets` : s.kind === 'cardio' ? 'Session steps' : 'Tests';
+  return `<details class="exfold fold" data-fold="${id}" ${open ? 'open' : ''}><summary><span class="grow">${lbl}</span><i class="chev" aria-hidden="true"></i></summary><div class="exlist">${inner}</div></details>`;
+}
 function whyBlock(s) { return s.why ? `<details class="why"><summary>🧪 Why this works</summary><div>${esc(s.why)}</div></details>` : ''; }
 function sessionActions(s) {
   const st = sessStatus(s), act = S.active && S.active.sessionKey === s.key, k = s.date;
@@ -28,18 +33,23 @@ function sessionActions(s) {
   if (act) return `<button class="btn tap" data-a="resume">▶ Resume workout</button>`;
   if (st === 'done' && s.kind === 'cardio') { const w = sessionDone(s.key), c = w.cardio || {}; return `<div class="row between"><div class="done-badge">${CHECK.replace('<svg', '<svg width="20" height="20"')} Done${c.dur ? ' · ' + c.dur + ' min' : ''}${c.dist ? ' · ' + (c.mode === 'swim' ? U.sOut(c.dist) + ' ' + su() : U.dOut(c.dist) + ' ' + du()) : ''}</div><div class="row"><button class="btn sm sec tap" data-a="cardioDetails" data-id="${w.id}">Details</button><button class="btn sm ghost tap" data-a="unmarkDone" data-id="${w.id}">Undo</button></div></div>`; }
   if (st === 'done') { const w = sessionDone(s.key); return `<div class="row between"><div class="done-badge">${CHECK.replace('<svg', '<svg width="20" height="20"')} Done${w.summary ? ' · ' + w.summary.durMin + ' min' : ''}</div><div class="row"><button class="btn sm sec tap" data-a="viewSummary" data-id="${w.id}">Summary</button><button class="btn sm ghost tap" data-a="start" data-day="${k}" data-key="${s.key}">Redo</button></div></div>`; }
-  if (st === 'skipped') return `<div class="row between"><span class="chip">Skipped${S.schedule.skips[s.key].reason ? ' · ' + esc(S.schedule.skips[s.key].reason) : ''}</span><div class="row"><button class="btn sm tap" data-a="moveSheet" data-key="${s.key}">Move</button><button class="btn sm ghost tap" data-a="unskip" data-key="${s.key}">Unskip</button></div></div>`;
-  if (s.kind === 'cardio') return `<button class="btn tap markdone" data-a="quickDone" data-day="${k}" data-key="${s.key}">Mark done ✓</button><div class="row" style="gap:8px;margin-top:8px"><button class="btn sm sec tap grow" data-a="start" data-day="${k}" data-key="${s.key}">Log details</button><button class="btn sm sec tap" data-a="moveSheet" data-key="${s.key}">Move</button><button class="btn sm sec tap" data-a="skip" data-key="${s.key}">Skip</button></div>`;
-  return `<div class="row" style="gap:8px"><button class="btn tap grow" data-a="start" data-day="${k}" data-key="${s.key}">${s.kind === 'lift' ? 'Start workout' : 'Start ' + (MODE_LABEL[s.cardio.mode] || 'session').toLowerCase()}</button><button class="btn sec tap" style="width:auto;padding:0 16px" data-a="moveSheet" data-key="${s.key}" aria-label="Move session">Move</button><button class="btn sec tap" style="width:auto;padding:0 14px" data-a="skip" data-key="${s.key}" aria-label="Skip session">Skip</button></div>`;
+  if (st === 'swapped') { const w = replacedBy(s.key); return `<div class="row between"><span class="chip swapchip">↪ Swapped → ${esc(w.title)}${w.cardio && w.cardio.dur ? ' · ' + w.cardio.dur + '′' : ''}</span><button class="btn sm ghost tap" data-a="undoSwap" data-id="${w.id}">Undo swap</button></div>`; }
+  if (st === 'skipped') return `<div class="row between"><span class="chip">Skipped${S.schedule.skips[s.key].reason ? ' · ' + esc(S.schedule.skips[s.key].reason) : ''}</span><div class="row"><button class="btn sm tap" data-a="moveSheet" data-key="${s.key}">Move</button><button class="btn sm ghost tap" data-a="unskip" data-key="${s.key}">Unskip</button></div></div><button class="btn sm sec tap swapbtn" data-a="qaOpen" data-date="${k}">↪ Did hockey / a ride instead</button>`;
+  if (s.kind === 'cardio') return `<button class="btn tap markdone" data-a="quickDone" data-day="${k}" data-key="${s.key}">Mark done ✓</button><div class="row" style="gap:8px;margin-top:8px"><button class="btn sm sec tap grow" data-a="start" data-day="${k}" data-key="${s.key}">Details</button><button class="btn sm sec tap grow" data-a="qaOpen" data-date="${k}" aria-label="Swapped for another activity">↪ Swap</button><button class="btn sm sec tap" data-a="moveSheet" data-key="${s.key}">Move</button><button class="btn sm sec tap" data-a="skip" data-key="${s.key}">Skip</button></div>`;
+  if (s.kind === 'lift') { // v2.5: at night (or for a past day) the fast path is first: top sets only
+    const night = isEvening() || k < today(), quick = `<button class="btn tap grow ${night ? 'markdone' : 'sec'}" data-a="liftLog" data-day="${k}" data-key="${s.key}">Log top sets ✓</button>`, full = `<button class="btn tap grow ${night ? 'sec' : ''}" data-a="start" data-day="${k}" data-key="${s.key}">Start workout</button>`;
+    return `<div class="row" style="gap:8px">${night ? quick + full : full + quick}</div><div class="row sa2"><button class="btn sm sec tap grow" data-a="qaOpen" data-date="${k}">↪ Hockey / ride instead</button><button class="btn sm sec tap" data-a="moveSheet" data-key="${s.key}" aria-label="Move session">Move</button><button class="btn sm sec tap" data-a="skip" data-key="${s.key}" aria-label="Skip session">Skip</button></div>`;
+  }
+  return `<div class="row" style="gap:8px"><button class="btn tap grow" data-a="start" data-day="${k}" data-key="${s.key}">${'Start ' + (MODE_LABEL[s.cardio.mode] || 'session').toLowerCase()}</button><button class="btn sec tap" style="width:auto;padding:0 16px" data-a="moveSheet" data-key="${s.key}" aria-label="Move session">Move</button><button class="btn sec tap" style="width:auto;padding:0 14px" data-a="skip" data-key="${s.key}" aria-label="Skip session">Skip</button></div>`;
 }
 function sessionCard(day, s, hero) {
   const chip = s.kind === 'lift' ? 'Strength' : s.kind === 'test' ? 'Test' : MODE_LABEL[s.cardio.mode];
-  return `<div class="card ${hero ? 'hero' : ''}" data-sess="${s.key}"><div class="row between"><span class="chip"><span class="dot c-${s.color}"></span>${hero ? chip : 'Also today · ' + chip}</span><span class="row" style="gap:8px"><span class="small muted">~${s.min} min</span>${sessBadge(s)}</span></div>${s.movedFrom ? `<div class="small" style="color:var(--swim);margin-top:8px">↪ Moved from ${fmtDow(s.movedFrom)}</div>` : ''}<div class="${hero ? 'ttl' : 'ttl2'}">${esc(s.title)}</div><div class="muted small">${esc(s.sub)}</div><div class="exlist" style="margin-top:12px">${sessionLines(s, modOf(day), day.k)}</div>${whyBlock(s)}${sessionActions(s)}</div>`;
+  return `<div class="card ${hero ? 'hero' : ''}" data-sess="${s.key}"><div class="row between"><span class="chip"><span class="dot c-${s.color}"></span>${hero ? chip : 'Also today · ' + chip}</span><span class="row" style="gap:8px"><span class="small muted">~${s.min} min</span>${sessBadge(s)}</span></div>${s.movedFrom ? `<div class="small" style="color:var(--swim);margin-top:8px">↪ Moved from ${fmtDow(s.movedFrom)}</div>` : ''}<div class="${hero ? 'ttl' : 'ttl2'}">${esc(s.title)}</div><div class="muted small">${esc(s.sub)}</div>${exFold(s, sessionLines(s, modOf(day), day.k), hero)}${whyBlock(s)}${sessionActions(s)}</div>`;
 }
 function contextTips(k) {
   if (!hasKnee(S.profile)) return '';
   const tips = [], d = dayPlan(k), tom = dayPlan(addDays(k, 1)), yest = dayPlan(addDays(k, -1));
-  if (tom && tom.sessions.some(isHockeyS)) tips.push(['⛸️', 'Hockey tomorrow — <b>no running today</b>, keep the legs easy.', '']);
+  if (tom && tom.sessions.some(isHockeyS)) tips.push(['⛸️', k >= NEW_PLAN_START ? 'Hockey tomorrow — keep today easy: <b>25–30′ easy run (RPE ≤5) or ride the MTB instead</b> if the knees are talking.' : 'Hockey tomorrow — <b>no running today</b>, keep the legs easy.', '']);
   if (d && d.sessions.some(isHockeyS)) tips.push(['🏒', 'Hockey day. Warm up hips & groin, log knee pain after the skate.', 'info']);
   if (yest && yest.sessions.some(isHockeyS) || (dayPlan(addDays(k, -2)) || { sessions: [] }).sessions.some(isHockeyS)) tips.push(['🦵', 'Within 48 h of hockey — <b>no hard lower work</b> today.', 'info']);
   const kb = [0, 1, 2].map(i => S.body[addDays(k, -i)]).find(b => b && b.knee != null);
@@ -69,36 +79,43 @@ function habitsCard() {
 }
 function heatmap(sel) {
   const start = weekStart(PLAN_START), t = today(); let cols = '';
-  for (let w = 0; w < 13; w++) { let c = ''; for (let d = 0; d < 7; d++) { const k = addDays(start, w * 7 + d); const p = k <= t ? habitPct(k) : -1; const lvl = p < 0 ? 'f' : p === 0 ? 0 : p < .34 ? 1 : p < .67 ? 2 : p < 1 ? 3 : 4; c += `<button class="hm l${lvl} ${k === sel ? 'sel' : ''}" data-a="habGo" data-date="${k}" ${p < 0 ? 'disabled' : ''} title="${k}"></button>`; } cols += `<div class="hmcol">${c}</div>`; }
-  return `<div class="hmwrap"><div class="row between xs dim" style="margin:14px 0 6px"><span>History · Oct 5 → Dec 31</span><span class="row" style="gap:3px">less <i class="hm l1"></i><i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i> more</span></div><div class="heatmap">${cols}</div></div>`;
+  for (let w = 0; w < 13; w++) { let c = ''; for (let d = 0; d < 7; d++) { const k = addDays(start, w * 7 + d); const p = k <= t ? habitPct(k) : -1; const lvl = p < 0 ? 'f' : p === 0 ? 0 : p < .34 ? 1 : p < .67 ? 2 : p < 1 ? 3 : 4; c += `<i class="hm l${lvl} ${k === sel ? 'sel' : ''}" title="${k}"></i>`; } cols += `<div class="hmcol">${c}</div>`; }
+  return `<div class="hmwrap"><div class="row between xs dim" style="margin:14px 0 6px"><span>History · Oct 5 → Dec 31 · use ‹ › or 📅 to log a past day</span><span class="row" style="gap:3px">less <i class="hm l1"></i><i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i> more</span></div><div class="heatmap">${cols}</div></div>`;
 }
-VIEWS.today = function () {
-  const k = today(), day = dayPlan(k), b = S.body[k] || {}, ft = foodTotals(k), prot = proteinFor(k), T = S.settings;
-  let h = hdr(fmtLong(k), 'Today');
-  if (k >= PLAN_START) h += doNowCard(k);
+VIEWS.today = function () { // v2.5 order: workout first → nightly/do-now → week summary → checklist → fuel → quick log → (collapsed) devotional, habits, program, guide
+  const k = today(), day = dayPlan(k), b = S.body[k] || {}, ft = { ...foodTotals(k), kcal: kcalFor(k) || 0 }, prot = proteinFor(k), T = S.settings;
+  let h = hdr(fmtLong(k), 'Today', `<button class="icon-btn round tap" data-a="calSheet" aria-label="Log a past day (calendar)">${CAL_ICON}</button>`);
   if (k < PLAN_START && S.active && (!day || !day.sessions.some(s => s.key === S.active.sessionKey))) h += `<div class="tip info"><div class="ic">⏱️</div><div class="grow">Workout in progress: <b>${esc(S.active.title)}</b><div style="margin-top:8px"><button class="btn sm tap" data-a="resume">Resume</button></div></div></div>`;
-  h += scheduleBanners(k);
-  if (k >= PLAN_START) h += nnCard(k) + checkinCard(k);
   let blockCard = '';
   if (day) {
     const m = day.meta, tot = diffDays(PLAN_START, PLAN_END) + 1, dn = diffDays(PLAN_START, k) + 1;
     blockCard = `<div class="card" style="padding:14px 16px"><div class="row between"><div class="row wrap" style="gap:6px"><span class="chip grad">Block ${day.block.n} · ${day.block.name}</span><span class="chip">Week ${day.wk}</span>${m.deload ? '<span class="chip deload">Deload</span>' : ''}${m.test ? '<span class="chip test">Test week</span>' : ''}${m.finals ? '<span class="chip finals">Finals</span>' : ''}</div><div class="small dim">Day ${dn}/${tot}</div></div>${m.note ? `<div class="small muted" style="margin-top:10px">${esc(m.note)}</div>` : ''}<div class="pbar"><i style="width:${dn / tot * 100}%"></i></div></div>`;
   }
+  // 1) today's workout first
   if (!day) h += `<div class="card hero"><span class="chip grad">${k < PLAN_START ? 'Starts Oct 5' : 'Plan complete'}</span><div class="ttl">${k < PLAN_START ? 'Plan starts Monday, Oct 5' : '🏁 Program complete!'}</div></div>`;
   else {
-    h += `<h2 class="sec" id="planSec">Today’s plan <small>${day.off ? 'Day off' : day.sessions.length ? day.sessions.reduce((a, s) => a + (s.min || 0), 0) + ' min' : 'Rest'}</small></h2>`;
-    h += contextTips(k);
-    if (day.off) h += `<div class="card"><span class="chip">Day off</span><div class="ttl2">📅 ${esc(day.off)}</div><div class="small muted">No training planned. Move today's sessions from the banner above if you want to make them up.</div></div>`;
-    if (day.meta.test && day.meta.testKey && !day.sessions.some(s => s.kind === 'test')) h += `<div class="tip goldbox"><div class="ic">📋</div><div class="grow">Test week (${TESTS.find(t => t.key === day.meta.testKey).label}). Fit the mile, 100 yd swim, pull-ups & broad jump into this week.<div style="margin-top:8px"><button class="btn sm sec tap" data-a="testSheet" data-key="${day.meta.testKey}">${testDone(day.meta.testKey) ? 'Edit results' : 'Enter results'}</button></div></div></div>`;
+    h += `<h2 class="sec first" id="planSec">Today’s workout <small>${day.off ? 'Day off' : day.sessions.length ? day.sessions.reduce((a, s) => a + (s.min || 0), 0) + ' min' : 'Rest'}</small></h2>`;
+    h += lowerRuleTips(k) + contextTips(k);
+    if (day.off) h += `<div class="card"><span class="chip">Day off</span><div class="ttl2">📅 ${esc(day.off)}</div><div class="small muted">No training planned. Move today's sessions from the banner below if you want to make them up.</div></div>`;
+    if (day.meta.test && day.meta.testKey && !day.sessions.some(s => s.kind === 'test')) h += `<div class="tip goldbox"><div class="ic">📋</div><div class="grow">Test week (${TESTS.find(t => t.key === day.meta.testKey).label}). Fit the mile, ${k >= NEW_PLAN_START ? '' : '100 yd swim, '}pull-ups & broad jump into this week${k >= NEW_PLAN_START ? ' (no swim for now)' : ''}.<div style="margin-top:8px"><button class="btn sm sec tap" data-a="testSheet" data-key="${day.meta.testKey}">${testDone(day.meta.testKey) ? 'Edit results' : 'Enter results'}</button></div></div></div>`;
     const ss = day.off ? [] : day.sessions;
     if (!ss.length && !day.off) h += `<div class="card hero"><span class="chip">Rest day</span><div class="ttl">Recover 💤</div><div class="small muted">Sleep 8h+, hit protein, do the 10-min mobility routine. Recovery is when you adapt.</div></div>`;
     ss.forEach((s, i) => h += sessionCard(day, s, i === 0));
+    h += extraActsCard(k);
   }
+  // 2) do-now / nightly log, schedule fixes
+  if (k >= PLAN_START) h += doNowCard(k);
+  h += scheduleBanners(k);
+  // 3) visible progress + checklist
+  if (k >= PLAN_START) h += weekSumCard(k) + nnCard(k) + checkinCard(k);
   h += `<h2 class="sec">Fuel today <button class="btn sm sec tap" data-a="goTab" data-tab="food">Open Food</button></h2><div class="card" id="fuelCard"><div class="fuel-sum"><div><b>${fmtNum(Math.max(0, T.kcal - ft.kcal))}</b><span>kcal left</span></div><div><b>${Math.max(0, T.protein - prot)} g</b><span>protein to go</span></div></div><div class="row between small"><span>Calories</span><b>${fmtNum(ft.kcal)} / ${fmtNum(T.kcal)}</b></div><div class="pbar"><i style="width:${Math.min(100, ft.kcal / T.kcal * 100)}%"></i></div><div class="row between small" style="margin-top:12px"><span>Protein</span><b>${prot} / ${T.protein} g</b></div><div class="pbar"><i class="pgreen" style="width:${Math.min(100, prot / T.protein * 100)}%"></i></div><div class="qadd" style="margin-top:12px"><button class="tap" data-a="quickProt" data-v="25">+25 g protein</button><button class="tap" data-a="quickProt" data-v="40">+40 g</button><button class="tap" data-a="quickProt" data-v="50">+50 g</button></div></div>`;
   h += `<h2 class="sec">Quick log</h2><div class="card"><div class="field"><label>Weight (${wu()})</label><div class="row"><input class="inp grow" id="q-weight" type="number" inputmode="decimal" step="0.1" placeholder="${esc(U.wOut(lastWeight()))}" value="${esc(U.wOut(b.weight))}"><button class="btn sm tap" style="height:48px" data-a="saveWeight">Save</button></div></div>${hasKnee(S.profile) || b.knee != null ? `<div class="field" style="margin-top:14px"><label>Knee pain (0–10) ${b.knee != null ? `· <span style="color:${painColor(b.knee)}">${b.knee}/10</span>` : ''}</label><div class="pain" id="q-knee">${[...Array(11)].map((_, i) => `<button class="tap ${b.knee === i ? 'on' : ''}" style="${b.knee === i ? `background:${painColor(i)}` : ''}" data-a="knee" data-v="${i}">${i}</button>`).join('')}</div></div>` : ''}</div>`;
-  h += `<h2 class="sec">Devotional</h2>` + devoCard(k);
-  h += `<h2 class="sec">Habits <small>full log</small></h2>` + habitsCard();
-  if (blockCard) h += `<h2 class="sec">Program</h2>` + blockCard;
+  // 4) long content, collapsed (nothing removed)
+  const devoOn = !!(S.devo.done[k] || (S.habitLog[k] || {}).bible);
+  h += foldSec('devo', '📖', 'Devotional', devoOn ? '✓ done today' : 'not yet today', devoCard(k), !devoOn && !isEvening());
+  const hp = Math.round(habitPct(UI.habDate || k) * 100);
+  h += foldSec('habits', '✅', 'Habits · full log', `${hp}% ${UI.habDate ? fmtDate(UI.habDate) : 'today'}`, habitsCard(), !!UI.habDate || !!UI.habOpen);
+  if (blockCard) h += foldSec('program', '🗓️', 'Program', `Block ${day.block.n} · week ${day.wk}`, blockCard);
   h += guideCard();
   return h;
 };
@@ -107,6 +124,7 @@ function guideCard() {
   let g = sec('mobility', '🧘', 'Daily 10-min mobility', `<ul class="clean">${MOBILITY.map(x => `<li>${esc(x)}</li>`).join('')}</ul><button class="btn sm sec tap" style="margin-top:10px" data-a="mobSheet">Open as checklist</button>`);
   g += sec('nutrition', '🥩', 'Nutrition rules', `<ul class="clean">${nutritionRules(S.profile, { kcal: T.kcal, protein: T.protein, perMeal: Math.round(T.protein / (S.profile.diet.meals || 4)) }).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`);
   if (hasKnee(S.profile)) g += sec('knee', '🦵', 'Knee rules', `<ul class="clean">${KNEE_RULES.map((r, i) => `<li>${['🛑', '🏃', '⏱️', '☝️'][i] || '•'} ${esc(r)}</li>`).join('')}</ul>`);
+  g += sec('swap', '🏒', 'Hockey or a ride instead of lifting?', `<div class="small muted">${esc(TRAIN_RULE)}</div><button class="btn sm sec tap" style="margin-top:10px" data-a="qaOpen" data-date="${today()}">＋ Quick add an activity</button>`);
   g += sec('slip', '🛡️', 'If things slip', `<div class="small muted">${esc(SLIP_RULE)}</div>`);
   return `<h2 class="sec">Guide</h2><div class="card guide" id="guide">${g}</div>`;
 }
@@ -145,7 +163,7 @@ function quickDone(k, key) {
   if (S.active && S.active.sessionKey === key) { w = S.active; S.active = null; } else w = createWorkout(k, key);
   const c = w.cardio; if (c.dur == null) c.dur = c.min || null; if (c.dist == null && c.planDist) c.dist = c.planDist;
   w.checklist.forEach(x => x.done = true); w.quick = true;
-  w.endedAt = Date.now(); w.startedAt = Math.min(w.startedAt, w.endedAt - (c.dur || 0) * 60000); computeSummary(w);
+  w.endedAt = k === today() ? Date.now() : atTime(k, 19); w.startedAt = Math.min(w.startedAt, w.endedAt - (c.dur || 0) * 60000); computeSummary(w);
   S.workouts.push(w); delete S.schedule.skips[key]; UNDO_QUICK = w.id; save(); haptic([15, 30, 15]);
   toast(`${s.title} ✓ done`, 'undoQuick'); rerenderKeep();
 }

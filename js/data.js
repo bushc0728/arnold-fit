@@ -151,6 +151,49 @@ const TEMPLATES = {
     ],
   },
 };
+/* v2.5 — new plan from Mon Nov 2, 2026 (look better: chest/arms/shoulders + smaller waist, ~205 lb, bench 225 for reps).
+   Old templates above stay untouched so past weeks still render exactly as logged. */
+Object.assign(TEMPLATES, {
+  upperB2: {
+    title: 'Upper B', icon: 'U', color: 'lift', focus: 'Shoulders · Arms · Upper chest', est: 55,
+    slots: [
+      { id: 'ub2a', ex: 'seated_db_press', role: 'main', reps: [6, 8], pri: 1 },
+      { id: 'ub2b', ex: 'incline_db', role: 'acc', reps: [8, 10], pri: 1 },
+      { id: 'ub2c', ex: 'lateral_raise', role: 'acc', reps: [10, 15], pri: 2 },
+      { id: 'ub2d', ex: 'ez_curl', role: 'acc', reps: [8, 12], ss: 'Superset', pri: 2 },
+      { id: 'ub2e', ex: 'oh_triceps', role: 'acc', reps: [8, 12], ss: 'Superset', pri: 2 },
+      { id: 'ub2f', ex: 'rear_delt_fly', role: 'acc', reps: [12, 15], pri: 3 },
+      { id: 'ub2g', ex: 'hammer_curl', role: 'acc', reps: [10, 12], pri: 3 },
+    ],
+  },
+  upperC: {
+    title: 'Upper C', icon: 'U', color: 'lift', focus: 'Bench volume (paused 3×5–6) · Back', est: 55,
+    slots: [
+      { id: 'ucp', ex: 'paused_bench', role: 'tech', reps: [5, 6], pri: 1 },
+      { id: 'uc2', ex: 'lat_pulldown', role: 'main', reps: [6, 10], pri: 1 },
+      { id: 'uc3', ex: 'cable_row', role: 'acc', reps: [8, 10], pri: 2 },
+      { id: 'uc4', ex: 'cable_fly', role: 'acc', reps: [10, 15], pri: 2 },
+      { id: 'uc5', ex: 'face_pull', role: 'acc', reps: [12, 15], pri: 3 },
+    ],
+  },
+  lowerS: {
+    title: 'Lower · Strength (short)', icon: 'L', color: 'lower', focus: 'Hinge · Knee-friendly legs · low volume (hockey + MTB already load the legs)', est: 40,
+    slots: [
+      { id: 'ls1', ex: 'rdl', role: 'main', reps: [5, 7], pri: 1 },
+      { id: 'ls2', ex: 'leg_press', role: 'main', reps: [6, 8], pri: 1 },
+      { id: 'ls3', ex: 'ham_curl', role: 'acc', reps: [6, 10], pri: 2 },
+      { id: 'ls4', ex: 'copenhagen', role: 'hold', reps: [20, 30], pri: 3 },
+    ],
+  },
+});
+const NEW_PLAN_START = '2026-11-02'; // v2.5 plan; the deload week (Oct 26 – Nov 1) and everything before stays as it was
+const PLAN_GOALS = [ // shown on Settings → Goals, Progress and the coach (“my goals”)
+  { ic: '📏', t: 'Look better — waist is the main metric', d: 'Chest, arms, shoulders up; waist down. Measure the waist at every Sunday check-in.' },
+  { ic: '⚖️', t: 'Weight 210+ → ~205 lb while adding muscle', d: 'Slow recomp, ~0.5 lb/week. Calories 2,500–2,600 · protein ~190 g.' },
+  { ic: '🏋️', t: 'Bench 225 for reps', d: 'Mon heavy top set + back-offs · Fri paused bench volume.' },
+  { ic: '🏊', t: 'Triathlon — future goal', d: 'No swimming for now. MTB + short runs keep the engine; swim comes back later.' },
+];
+const FOOD_PLAN = ['3 home-cooked meals × 55–60 g protein + 1 high-protein snack ≈ 190 g/day — no shakes', 'Calories ≈ 2,500–2,600/day (copy the day’s totals from MyFitnessPal into the nightly log)', 'Weekends: keep the 3 protein meals', 'Drinking: max 1 night/week, 3–4 drinks, protein meal first'];
 const ALL_SLOTS = Object.values(TEMPLATES).flatMap(t => t.slots);
 const slotById = id => ALL_SLOTS.find(s => s.id === id);
 
@@ -162,7 +205,7 @@ const KNEE_RULES = [
   'No hard lower-body work within 48 hours of hockey.',
   'Add only ONE new impact stressor per week.',
 ];
-const SLIP_RULE = 'If things slip: protect Upper A, Upper B, Lower + Power and 1 cardio session.';
+const SLIP_RULE = 'If things slip: protect Upper A (heavy bench) + one more lift — at least 2 lifts every week — and the 3 protein meals. Hockey or a ride can replace any other day.';
 
 const WHY = {
   UA: 'Heavy bench goes first while you’re fresh — getting stronger is now an explicit goal. One heavy top set (Base ~5 reps, Build 3–4, Sharpen 2–3 plus a heavy single) is the biggest strength signal per minute; 2–3 back-offs at −10% add quality practice without junk volume. Rows, pull-ups and face pulls build the upper-back shelf you press from and keep shoulders healthy; JM press trains lockout. On a cut, expect modest bench gains — protein ≥190 g protects them.',
@@ -174,6 +217,11 @@ const WHY = {
   RUN2: 'A second easy run adds aerobic volume. It sits on Monday, far from hockey, and is introduced alone to honor the one-new-stressor rule.',
   SWIM: 'Short repeats with rest let a beginner keep good form, so you practice good technique instead of struggle. Aerobic work with zero knee impact.',
   LONG: 'Long zone-2 work is the best tool for aerobic endurance and fat burning. Cycling is knee-friendly and keeps legs fresh for Sunday hockey.',
+  UB2: 'Shoulders and arms are what make the upper body look bigger. Moderate loads, 8–15 reps taken close to failure build size with little joint stress — and nothing here competes with Monday’s heavy bench.',
+  UC: 'Second bench day: paused bench 3×5–6 at RPE 7–8 adds quality bench volume (the fastest path to 225 for reps) and owns the bottom position. Back work keeps shoulders healthy and builds the V-taper.',
+  LOW2: 'Short and strength-focused on purpose: hockey and MTB already load your legs. A heavy hinge and a knee-friendly press for low reps keep leg strength without adding fatigue or patellar stress.',
+  MTB: 'Mountain biking is your knee-friendly engine work. Keep most of it zone 2 (RPE 4–6) so Wednesday’s lower day stays on — a very hard ride counts toward the 48-h rule.',
+  SAT: 'A short 25–30′ run (or MTB) keeps running fitness for a future triathlon without beating up the knees before Sunday hockey.',
   HOCKEY: 'Hockey is high-intensity intervals plus impact. That’s why running and hard leg days are kept away from it.',
   TEST: 'Testing on fresh legs at the end of a block shows what’s working, so the plan adjusts to data, not feelings.',
   SPIN: 'Easy movement the day before testing primes the legs without fatigue.',
@@ -184,8 +232,8 @@ const WHY = {
 
 const BLOCKS = [
   { n: 1, name: 'Base', start: '2026-10-05', end: '2026-11-01', grad: 'b1', desc: 'Build the engine. Easy run 25→35′, swim 10×25 → 6×50, bike 45→60′. Week 5 deload.' },
-  { n: 2, name: 'Build', start: '2026-11-02', end: '2026-11-29', grad: 'b2', desc: 'Strides + 2nd run, swim 4×100 → 2×200, bike 60–75′ with 3×5′ mod-hard. Thanksgiving deload.' },
-  { n: 3, name: 'Sharpen', start: '2026-11-30', end: '2026-12-27', grad: 'b3', desc: 'Intervals 5×3′, long run 40–45′, swim 300→500 continuous, bike 75–90′. Finals week reduced.' },
+  { n: 2, name: 'Build', start: '2026-11-02', end: '2026-11-29', grad: 'b2', desc: 'New plan: Upper A/B/C + short Lower, Tue MTB, Sat 25–30′ run or MTB, Sun hockey. No swim for now. Thanksgiving deload.' },
+  { n: 3, name: 'Sharpen', start: '2026-11-30', end: '2026-12-27', grad: 'b3', desc: 'Same week shape, heavier bench top sets (2–3 reps + a single). MTB up to 60′. Finals week reduced.' },
   { n: 4, name: 'Test', start: '2026-12-28', end: '2026-12-31', grad: 'b4', desc: 'Sharp, fresh, and tested on Dec 31.' },
 ];
 const TESTS = [
@@ -207,13 +255,13 @@ const TEST_FIELDS = [
 /* ---------- profile (onboarding answers) ---------- */
 const DEFAULT_PROFILE = {
   style: 'hybrid', goals: ['fatloss', 'strength', 'muscle', 'endurance', 'explosive', 'hockey'], primary: 'fatloss',
-  heightIn: 74, weight: 210, goalWeight: 200, age: 21, sex: 'male', sleep: 8,
+  heightIn: 74, weight: 210, goalWeight: 205, age: 21, sex: 'male', sleep: 8,
   gym: 'full', pool: true, poolName: 'UREC pool', bike: 'mix',
   days: 7, sessionMin: 60, time: 'midday', intensity: 'intensity',
   injuries: { aclL: true, aclR: true, patella: true, flare: false, other: '' },
   diet: { approach: 'rules', meals: 4, pref: 'omnivore', alcohol: 1, flex: 1 },
 };
-const GOAL_LABEL = { fatloss: 'Fat loss', strength: 'Get stronger — bench press focus', muscle: 'Build muscle', endurance: 'Endurance', explosive: 'Explosiveness', hockey: 'Hockey' };
+const GOAL_LABEL = { fatloss: 'Fat loss — smaller waist', strength: 'Get stronger — bench 225 for reps', muscle: 'Build muscle — chest, arms, shoulders', endurance: 'Endurance (triathlon later)', explosive: 'Explosiveness', hockey: 'Hockey' };
 const hasKnee = P => !!(P.injuries && (P.injuries.aclL || P.injuries.aclR || P.injuries.patella));
 
 function computeTargets(P) {
@@ -237,12 +285,17 @@ function nutritionRules(P, T) {
     'Half the plate plants', 'Carbs around training (pre + post)', 'Mostly zero-cal drinks',
     `Alcohol ≤${d.alcohol ?? 1} night/week · ${d.flex ?? 1} flexible meal/week`, 'Creatine 5 g/day, every day'];
   if (d.approach === 'count') r.splice(1, 0, 'Log every meal in Food — calories and protein');
+  if ((P.goals || []).includes('hockey')) return FOOD_PLAN.concat(['Half the plate plants', 'Carbs around training (pre + post)', 'Creatine 5 g/day, every day']); // v2.5 plan
   return r;
 }
 
 /* weekly template: 7 codes Mon..Sun (null = rest). Default (7 days, hockey) = his plan. */
-function weeklyTemplate(P) {
+function weeklyTemplate(P, k) {
   const hockey = (P.goals || []).includes('hockey'), d = Math.min(7, Math.max(3, P.days || 7));
+  if (hockey && (k == null || k >= NEW_PLAN_START)) { // v2.5 plan: lifts midday · no swim for now
+    const t = { 7: ['UA', 'MTB', 'LOW', 'UB', 'UC', 'SAT', 'HOCKEY'], 6: ['UA', 'MTB', 'LOW', 'UB', 'UC', null, 'HOCKEY'], 5: ['UA', null, 'LOW', 'UB', 'UC', null, 'HOCKEY'], 4: ['UA', null, 'LOW', null, 'UC', null, 'HOCKEY'], 3: ['UA', null, null, 'UB', 'UC', null, 'HOCKEY'] };
+    return t[d];
+  }
   if (hockey) {
     const t = { 7: ['UA', 'RUN', 'LOW', 'SWIM', 'UB', 'LONG', 'HOCKEY'], 6: ['UA', 'RUN', 'LOW', 'SWIM', 'UB', null, 'HOCKEY'], 5: ['UA', 'RUN', 'LOW', null, 'UB', null, 'HOCKEY'], 4: ['UA', null, 'LOW', null, 'UB', null, 'HOCKEY'], 3: ['UA', null, 'LOW', null, 'UB', null, 'HOCKEY'] };
     return t[d];
@@ -250,7 +303,7 @@ function weeklyTemplate(P) {
   const t = { 7: ['UA', 'RUN', 'LOW', 'SWIM', 'UB', 'LONG', 'REC'], 6: ['UA', 'RUN', 'LOW', 'SWIM', 'UB', 'LONG', null], 5: ['UA', 'RUN', 'LOW', 'SWIM', 'UB', null, null], 4: ['UA', 'RUN', 'LOW', null, 'UB', null, null], 3: ['UA', null, 'LOW', null, 'UB', null, null] };
   return t[d];
 }
-const CODE_NAME = { UA: 'Upper A', UB: 'Upper B', LOW: 'Lower + Power', RUN: 'Run + core', SWIM: 'Swim', LONG: 'Long aerobic', HOCKEY: 'Hockey', REC: 'Recovery', RUN2: 'Run 2', TEST: 'Test day', SPIN: 'Easy spin' };
+const CODE_NAME = { UC: 'Upper C', MTB: 'MTB', SAT: 'Run or MTB', UA: 'Upper A', UB: 'Upper B', LOW: 'Lower', RUN: 'Run + core', SWIM: 'Swim', LONG: 'Long aerobic', HOCKEY: 'Hockey', REC: 'Recovery', RUN2: 'Run 2', TEST: 'Test day', SPIN: 'Easy spin' };
 
 /* ---------- date helpers (local time — device is America/Chicago) ---------- */
 const pad = n => String(n).padStart(2, '0');
@@ -319,6 +372,15 @@ function bikeSat(wk) {
   return { mode: 'bike', title: `Long Aerobic Bike ${m}′`, min: m, why: 'LONG', steps, tip: 'Day before hockey: no running, keep legs easy.' };
 }
 
+function mtbTue(wk) {
+  const m = wk === 9 || wk === 11 ? 40 : wk >= 12 ? 60 : 50;
+  return { mode: 'bike', title: `MTB ${m}′`, min: m, why: 'MTB', steps: [[`${m} min`, 'Mountain bike, mostly zone 2 (RPE 4–6) — climbs are fine'], ['Effort', 'Log effort 1–10. Went hard (≥7)? Keep Wednesday’s lower day light or move it a day.']] };
+}
+function satCardio(wk) {
+  const m = wk === 9 ? 25 : 30;
+  return { mode: 'run', title: `Run ${m === 25 ? 25 : '25–30'}′ or MTB`, min: m, why: 'SAT', steps: [[`${m === 25 ? 25 : '25–30'} min`, 'Easy run (RPE 4–5) — or ride the MTB instead if knees or legs are cranky'], ['Tomorrow', 'Hockey — keep it easy today']] };
+}
+
 /* sets for a slot given week modifier and profile style */
 function buildSets(slot, mod, P, k) {
   const sets = [], endu = P && P.style === 'endurance', vol = P && P.intensity === 'volume' && mod === 'normal' ? 1 : 0;
@@ -350,7 +412,7 @@ const BASIC_GYM_SWAP = { incline_bench: 'incline_db', cs_row: 'db_row', cable_fl
 const FLARE_SWAP = { broad_jump: 'medball_throw', leg_press: 'hip_thrust', split_squat: 'step_up', calf_raise: 'seated_calf', back_squat: 'hip_thrust', goblet_squat: 'single_leg_hip_thrust' };
 function profileExercise(slot, P) {
   let id = slot.ex;
-  if (slot.id === 'lo3' && !hasKnee(P)) id = 'back_squat';
+  if ((slot.id === 'lo3' || slot.id === 'ls2') && !hasKnee(P)) id = 'back_squat';
   if (slot.id === 'lo1' && !(P.goals || []).includes('explosive')) id = 'kb_swing';
   if (P.gym === 'basic' && BASIC_GYM_SWAP[id]) id = BASIC_GYM_SWAP[id];
   if (P.injuries && P.injuries.flare && FLARE_SWAP[id]) id = FLARE_SWAP[id];
@@ -368,9 +430,9 @@ function basePlan(k, P) {
   if (!inPlan(k)) return null;
   const wk = weekNum(k), meta = weekMeta(wk), d = dow(k), sessions = [], mod = liftMod(wk);
   const flare = P.injuries && P.injuries.flare;
-  const lift = (t, code) => {
+  const lift = (t, code, whyKey) => {
     const T = TEMPLATES[t], fin = t === 'upperB' && P.sessionMin >= 45 ? (P.bike === 'none' ? { mode: 'walk', title: 'Incline walk finisher', min: 15, steps: [['15 min', 'Incline treadmill walk, easy']] } : T.finisher) : null;
-    return { kind: 'lift', tpl: t, code, mod, title: T.title, sub: T.focus.replace(' + easy bike', fin ? ' + easy ' + (fin.mode === 'walk' ? 'walk' : 'bike') : ''), icon: T.icon, color: T.color, min: Math.min(P.sessionMin, T.est), why: WHY[code] + (mod !== 'normal' ? ' ' + WHY[mod] : ''), finisher: fin };
+    return { kind: 'lift', tpl: t, code, mod, title: T.title, sub: T.focus.replace(' + easy bike', fin ? ' + easy ' + (fin.mode === 'walk' ? 'walk' : 'bike') : ''), icon: T.icon, color: T.color, min: Math.min(P.sessionMin, T.est), why: WHY[whyKey || code] + (mod !== 'normal' ? ' ' + WHY[mod] : ''), finisher: fin };
   };
   const cardio = (c, code) => {
     if (!c) return null;
@@ -384,15 +446,24 @@ function basePlan(k, P) {
     return { kind: 'cardio', code, cardio: c, title: c.title, sub: c.steps.map(s => s[0]).join(' · '), icon, color: c.mode === 'walk' ? 'bike' : c.mode, min: c.min, why: WHY[c.why || code] + (mod === 'deload' && code !== 'HOCKEY' ? ' ' + WHY.deload : '') };
   };
   const hockeyS = () => ({ kind: 'cardio', code: 'HOCKEY', cardio: { mode: 'hockey', title: 'Hockey', min: 75, steps: [['Game / skate', 'Warm up hips + groin first. Log knee pain after.']] }, title: 'Hockey 🏒', sub: 'Sunday skate', icon: 'H', color: 'hockey', min: 75, why: WHY.HOCKEY });
-  const testS = (key, big) => ({ kind: 'test', code: 'TEST', testKey: key, title: big ? 'Final Test Day 🏁' : 'Test Day', sub: big ? 'Mile · 100 yd swim · Pull-ups · Bench AMRAP · Broad jump · Waist' : 'Avg weight · waist · pull-ups · bench AMRAP @ ~85% (+ mile/swim/jump earlier this week)', icon: 'T', color: 'test', min: big ? 75 : 20, why: WHY.TEST });
-  const tpl = weeklyTemplate(P);
+  const testS = (key, big) => ({ kind: 'test', code: 'TEST', testKey: key, title: big ? 'Final Test Day 🏁' : 'Test Day', sub: big ? (k >= NEW_PLAN_START ? 'Waist · avg weight · Bench AMRAP · Pull-ups · Mile · Broad jump' : 'Mile · 100 yd swim · Pull-ups · Bench AMRAP · Broad jump · Waist') : k >= NEW_PLAN_START ? 'Waist · avg weight · pull-ups · bench AMRAP @ ~85% (no swim for now)' : 'Avg weight · waist · pull-ups · bench AMRAP @ ~85% (+ mile/swim/jump earlier this week)', icon: 'T', color: 'test', min: big ? 75 : 20, why: WHY.TEST });
+  const tpl = weeklyTemplate(P, k), np = k >= NEW_PLAN_START;
   if (wk === 14) {
     if (d === 0) sessions.push(lift('upperA', 'UA'));
-    if (d === 1 && tpl[1]) sessions.push(cardio(runTue(14), 'RUN'));
+    if (d === 1 && tpl[1]) sessions.push(np ? cardio({ ...mtbTue(14), min: 30, title: 'Easy MTB 30′', steps: [['30 min', 'Easy spin on the MTB — fresh legs for tests']] }, 'MTB') : cardio(runTue(14), 'RUN'));
     if (d === 2) sessions.push(cardio({ mode: 'bike', title: 'Easy Spin 20′ + Mobility', min: 20, why: 'SPIN', steps: [['20 min', 'Easy spin — fresh legs for tests'], ['Mobility', '10 min routine']], checklist: MOBILITY }, 'SPIN'));
     if (d === 3) sessions.push(testS('dec31', true));
   } else {
     const code = tpl[d];
+    if (np) { // v2.5 plan
+      if (code === 'UA') sessions.push(lift('upperA', 'UA'));
+      if (code === 'MTB') sessions.push(cardio(mtbTue(wk), 'MTB'));
+      if (code === 'LOW') sessions.push(lift('lowerS', 'LOW', 'LOW2'));
+      if (code === 'UB') sessions.push(lift('upperB2', 'UB', 'UB2'));
+      if (code === 'UC') sessions.push(lift('upperC', 'UC'));
+      if (code === 'SAT') sessions.push(cardio(satCardio(wk), 'SAT'));
+      if (code === 'HOCKEY') sessions.push(hockeyS());
+    } else {
     if (code === 'UA') { sessions.push(lift('upperA', 'UA')); if (P.days >= 6 && P.style !== 'strength') { const r = cardio(run2(wk), 'RUN2'); if (r) sessions.push(r); } }
     if (code === 'RUN') sessions.push(cardio(runTue(wk), 'RUN'));
     if (code === 'LOW') sessions.push(lift('lower', 'LOW'));
@@ -401,6 +472,7 @@ function basePlan(k, P) {
     if (code === 'LONG') sessions.push(cardio(bikeSat(wk), 'LONG'));
     if (code === 'REC') sessions.push(cardio({ mode: 'swim', title: 'Recovery Swim/Walk 30′', min: 30, why: 'REC', steps: [['30 min', 'Very easy — swim, walk, or spin']] }, 'REC'));
     if (code === 'HOCKEY') sessions.push(hockeyS());
+    }
     if (k === '2026-11-01' || k === '2026-11-29') sessions.push(testS(k === '2026-11-01' ? 'nov1' : 'nov29'));
   }
   const out = sessions.filter(Boolean);
@@ -408,7 +480,7 @@ function basePlan(k, P) {
   return { k, wk, meta, block: blockFor(k), sessions: out, dow: d };
 }
 const isRunS = s => s.cardio && s.cardio.mode === 'run';
-const isLowerS = s => s.kind === 'lift' && s.tpl === 'lower';
+const isLowerS = s => s.kind === 'lift' && (s.tpl === 'lower' || s.tpl === 'lowerS');
 const isHockeyS = s => s.cardio && s.cardio.mode === 'hockey';
 const isImpactS = s => isRunS(s) || isLowerS(s) || isHockeyS(s);
-const isUpperS = s => s.kind === 'lift' && (s.tpl === 'upperA' || s.tpl === 'upperB');
+const isUpperS = s => s.kind === 'lift' && ['upperA', 'upperB', 'upperB2', 'upperC'].includes(s.tpl);

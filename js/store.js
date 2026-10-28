@@ -1,4 +1,4 @@
-/* Arnold Fit v2 — localStorage store (schema v2, migrates v1), units, analytics, schedule, targets */
+/* Arnold Fit v2.5 — localStorage store (schema v4, migrates v1–v3 in place, never deletes data), units, analytics, schedule, targets */
 'use strict';
 const STORE_KEY = 'arnoldfit.v1'; // same key as v1 so existing data is read & migrated in place
 const DEFAULT_HABITS = [
@@ -15,9 +15,9 @@ const STARTER_VIDEOS = [ // verified via YouTube oEmbed (200) — titles are the
 ];
 function defaultState() {
   return {
-    v: 3, created: Date.now(), onboarded: false, profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
+    v: 4, created: Date.now(), onboarded: false, profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
     settings: {
-      name: 'Christopher', kcal: 2450, protein: 190, startWeight: 210, goalWeight: 200, goalDate: PLAN_END,
+      name: 'Christopher', kcal: 2550, protein: 190, startWeight: 210, goalWeight: 205, goalDate: PLAN_END,
       units: { w: 'lb', d: 'mi', s: 'yd', len: 'in' }, rest: { main: 180, acc: 90 }, haptics: true, sound: true,
       habits: DEFAULT_HABITS.map(h => ({ ...h })),
       nn: ['train', 'protein', 'mobility', 'devo', 'sleep'], reminder: { on: true, time: '20:00' }, // v2.4
@@ -31,10 +31,11 @@ function defaultState() {
     devo: { seen: [], byDate: {}, journal: {}, talk: {}, done: {}, time: {}, started: {}, favs: [], cycle: 1 },
     videos: STARTER_VIDEOS.map((v, i) => ({ id: 'sv' + i, ...v, added: Date.now() })),
     videoCats: ['Discipline', 'Hockey', 'Triathlon/Ironman', 'Faith'],
-    schedule: { moves: {}, skips: {}, off: {} },
+    schedule: { moves: {}, skips: {}, off: {}, replaced: {} }, // v2.5: replaced[sessionKey] = id of the quick-add activity that replaced it
     planEdits: {}, // date -> { slotId: {ex?, skip?} }
     chat: [], seeds: {},
     disc: { commit: {}, checkin: {} }, // v2.3/2.4 discipline layer
+    nightly: {}, // v2.5: nightly[date] = { ts, ans: { protein: true/false, … } }
   };
 }
 function migrateKey(key) { // v1 "date:idx" → v2 "date:CODE"
@@ -57,7 +58,10 @@ function migrate(raw) {
   out.verse = Object.assign({ seen: [], favs: [], byDate: {}, order: null }, s.verse || {});
   out.devo = Object.assign(defaultState().devo, s.devo || {});
   { const hb = out.settings.habits.find(h => h.id === 'bible'); if (hb && hb.label === 'Read today’s verse') hb.label = 'Daily devotional'; }
-  out.schedule = Object.assign({ moves: {}, skips: {}, off: {} }, s.schedule || {});
+  out.schedule = Object.assign({ moves: {}, skips: {}, off: {}, replaced: {} }, s.schedule || {});
+  if (!out.schedule.replaced || typeof out.schedule.replaced !== 'object') out.schedule.replaced = {};
+  out.nightly = Object.assign({}, s.nightly && typeof s.nightly === 'object' ? s.nightly : {});
+  if (!Array.isArray(out.workouts)) out.workouts = [];
   out.disc = Object.assign({ commit: {}, checkin: {} }, s.disc || {});
   if (!Array.isArray(out.settings.nn) || !out.settings.nn.length) out.settings.nn = defaultState().settings.nn.slice();
   out.settings.reminder = Object.assign({ on: true, time: '20:00' }, out.settings.reminder || {});
@@ -78,11 +82,30 @@ function migrate(raw) {
     if (Object.keys(arch).length) out.archive = Object.assign({}, out.archive, { swapPrefsV2: arch });
     if (s.v === 2) out.migratedV3 = Date.now();
   }
-  out.v = 3;
+  if (!s.v || s.v < 4) { // ---- v3 → v4 (v2.5): additive only — quick-add swaps (schedule.replaced) + nightly log (nightly). Nothing renamed or removed.
+    if (s.v === 3) out.migratedV4 = Date.now();
+    // new plan targets (Nov 2): only replace values that are still the old defaults — anything he set himself is kept
+    if (out.settings.goalWeight === 200) out.settings.goalWeight = 205;
+    if (out.profile.goalWeight === 200) out.profile.goalWeight = 205;
+    if (out.settings.kcal === 2450) { out.settings.kcal = 2550; (out.kcalLog = Array.isArray(out.kcalLog) ? out.kcalLog : []).push({ date: dkey(new Date()), from: 2450, to: 2550, note: 'v2.5 plan: 2,500–2,600 kcal' }); }
+  }
+  out.v = 4;
   return out;
 }
 let S;
-try { S = migrate(JSON.parse(localStorage.getItem(STORE_KEY))); } catch (e) { S = defaultState(); }
+(function load() {
+  let raw = null; try { raw = localStorage.getItem(STORE_KEY); } catch (e) {}
+  try {
+    const parsed = JSON.parse(raw);
+    // v2.5 safety net: keep an untouched copy of pre-v4 data before the first migration (one-time, never overwritten)
+    if (raw && parsed && parsed.v && parsed.v < 4) { try { if (!localStorage.getItem(STORE_KEY + '.backup-v' + parsed.v)) localStorage.setItem(STORE_KEY + '.backup-v' + parsed.v, raw); } catch (e) {} }
+    S = migrate(parsed);
+  } catch (e) {
+    // never silently wipe: stash whatever was stored before falling back to a fresh state
+    if (raw) { try { localStorage.setItem(STORE_KEY + '.rescue-' + Date.now(), raw); } catch (e2) {} }
+    console.warn('load/migrate failed — raw data kept in a .rescue key', e); S = defaultState();
+  }
+})();
 let planCache = {};
 function invalidatePlan() { planCache = {}; }
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); } }
@@ -133,12 +156,13 @@ function dayPlan(k) {
   const mv = S.schedule.moves;
   const own = b.sessions.filter(s => !mv[s.key] || mv[s.key] === k);
   const incoming = Object.keys(mv).filter(key => mv[key] === k && key.split(':')[0] !== k).map(key => { const s = sessionByKey(key); return s ? { ...s, movedFrom: key.split(':')[0] } : null; }).filter(Boolean);
-  const sessions = own.concat(incoming).map(s => ({ ...s, skipped: !!S.schedule.skips[s.key], date: k }));
+  const sessions = own.concat(incoming).map(s => ({ ...s, skipped: !!S.schedule.skips[s.key], replaced: replacedBy(s.key), date: k }));
   return { ...b, sessions, off: S.schedule.off[k] || null };
 }
 function sessionDone(key) { return S.workouts.find(w => w.sessionKey === key); }
+function replacedBy(key) { const id = (S.schedule.replaced || {})[key]; return id ? S.workouts.find(w => w.id === id) || null : null; } // v2.5 quick-add swap
 const testDone = key => Object.keys(S.tests[key] || {}).length > 0;
-function sessStatus(s) { if (s.kind === 'test') return testDone(s.testKey) ? 'done' : 'todo'; if (sessionDone(s.key)) return 'done'; if (s.skipped) return 'skipped'; return 'todo'; }
+function sessStatus(s) { if (s.kind === 'test') return testDone(s.testKey) ? 'done' : 'todo'; if (sessionDone(s.key)) return 'done'; if (replacedBy(s.key)) return 'swapped'; if (s.skipped) return 'skipped'; return 'todo'; }
 
 /* knee-rule check for moving a session to another day */
 function checkMove(key, toK) {
@@ -277,7 +301,15 @@ function benchTarget(k) {
 /* ---------- food ---------- */
 function foodDay(k) { return S.food.log[k] || []; }
 function foodTotals(k) { return foodDay(k).reduce((a, f) => ({ kcal: a.kcal + f.kcal * (f.qty || 1), p: a.p + f.p * (f.qty || 1) }), { kcal: 0, p: 0 }); }
-function proteinFor(k) { const f = foodDay(k); return f.length ? Math.round(foodTotals(k).p) : ((S.body[k] || {}).protein || 0); }
+function mfpFor(k) { return (S.body[k] || {}).mfp || null; } // v2.5: day totals copied from MyFitnessPal in the nightly log { kcal, p }
+function proteinFor(k) { const f = foodDay(k), m = mfpFor(k), app = f.length ? Math.round(foodTotals(k).p) : ((S.body[k] || {}).protein || 0); return m && m.p != null ? Math.max(m.p, app) : app; }
+function kcalFor(k) { const m = mfpFor(k); if (m && m.kcal != null) return m.kcal; const f = foodDay(k); return f.length ? Math.round(foodTotals(k).kcal) : null; }
+function fuelAvg7(endK) { // 7-day averages over the days that have numbers
+  const ks = [...Array(7)].map((_, i) => addDays(endK, -i));
+  const kc = ks.map(kcalFor).filter(v => v != null), pr = ks.filter(k => (mfpFor(k) && mfpFor(k).p != null) || foodDay(k).length || (S.body[k] || {}).protein).map(proteinFor);
+  const avg = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null;
+  return { kcal: avg(kc), kcalN: kc.length, p: avg(pr), pN: pr.length };
+}
 function allFoods() { const veg = ['vegetarian', 'vegan'].includes(S.profile.diet.pref), pesc = S.profile.diet.pref === 'pescatarian'; return S.food.custom.map(f => ({ ...f, cat: 'My foods', custom: true })).concat(FOODS.filter(f => !(veg && f.diet !== 'veg') && !(pesc && f.diet === 'meat'))); }
 function syncProteinHabit(k) { const l = S.habitLog[k] = S.habitLog[k] || {}; if (S.settings.habits.find(h => h.id === 'protein')) { if (proteinFor(k) >= S.settings.protein) l.protein = true; } }
 
