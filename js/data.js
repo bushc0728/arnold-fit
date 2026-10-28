@@ -162,9 +162,9 @@ Object.assign(TEMPLATES, {
      main lift = top set 4–6 + 2–3 back-offs 6–10 at −10%, accessories 2–3 × 8–15 near failure, lengthened-position picks,
      knee-safe for both ACLs (no high-rep knee loading). n = hard sets (accessories). Sessions ≤ 60 min incl. warm-up. */
   upperA2: {
-    title: 'Upper A', icon: 'U', color: 'lift', focus: 'Heavy bench · Pull-ups · Incline · Arms + delts', est: 55,
+    title: 'Upper A', icon: 'U', color: 'lift', focus: 'Bench · Pull-ups · Incline · Arms + delts', est: 55,
     slots: [
-      { id: 'a2b', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
+      { id: 'a2m', ex: 'flat_bench', role: 'main', reps: [5, 8], pri: 1 }, /* v2.8: normal lift, double progression (top set + back-offs), once a week */
       { id: 'a2p', ex: 'weighted_pullup', role: 'main', reps: [4, 6], pri: 1 },
       { id: 'a2i', ex: 'incline_db', role: 'acc', reps: [8, 12], n: 2, pri: 1 },
       { id: 'a2r', ex: 'cs_row', role: 'acc', reps: [8, 12], n: 2, pri: 2 },
@@ -185,9 +185,9 @@ Object.assign(TEMPLATES, {
     ],
   },
   upperC: {
-    title: 'Upper C', icon: 'U', color: 'lift', focus: 'Paused bench volume · Rows · Dips · Rear delts · Calves', est: 55,
+    title: 'Upper C', icon: 'U', color: 'lift', focus: 'DB press · Rows · Dips · Rear delts · Calves', est: 55,
     slots: [
-      { id: 'ucp', ex: 'paused_bench', role: 'tech', reps: [5, 6], pri: 1 },
+      { id: 'ucd', ex: 'flat_db_press', role: 'main', reps: [6, 10], pri: 1 }, /* v2.8: no barbell bench on Upper C */
       { id: 'uc2', ex: 'cs_row', role: 'main', reps: [6, 8], pri: 1 },
       { id: 'uc3', ex: 'dips', role: 'acc', reps: [6, 10], n: 2, ss: 'Superset', pri: 2 },
       { id: 'uc4', ex: 'cable_lateral', role: 'acc', reps: [12, 15], n: 2, ss: 'Superset', pri: 2 },
@@ -208,9 +208,9 @@ Object.assign(TEMPLATES, {
   },
   /* v2.6 — “Pick today’s workout” sessions + deload-week Push/Pull (Oct 28/29). Same standards as above. */
   pushP: {
-    title: 'Push', icon: 'P', color: 'lift', focus: 'Bench top set · Incline · Shoulders · Triceps', est: 55,
+    title: 'Push', icon: 'P', color: 'lift', focus: 'DB press · Incline · Shoulders · Triceps', est: 55,
     slots: [
-      { id: 'pu1', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
+      { id: 'pu1d', ex: 'flat_db_press', role: 'main', reps: [6, 10], pri: 1 },
       { id: 'pu2', ex: 'incline_db', role: 'acc', reps: [8, 12], n: 3, pri: 1 },
       { id: 'pu3', ex: 'seated_db_press', role: 'main', reps: [6, 8], pri: 1 },
       { id: 'pu4', ex: 'dips', role: 'acc', reps: [6, 10], n: 2, pri: 2 },
@@ -231,9 +231,9 @@ Object.assign(TEMPLATES, {
     ],
   },
   fullP: {
-    title: 'Full Body', icon: 'F', color: 'lift', focus: 'Bench · Trap-bar RDL · Row · Leg press · Delts', est: 55,
+    title: 'Full Body', icon: 'F', color: 'lift', focus: 'DB press · Trap-bar RDL · Row · Leg press · Delts', est: 55,
     slots: [
-      { id: 'fb1', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
+      { id: 'fb1d', ex: 'flat_db_press', role: 'main', reps: [6, 10], pri: 1 },
       { id: 'fb2', ex: 'trap_rdl', role: 'main', reps: [5, 6], pri: 1 },
       { id: 'fb3', ex: 'cs_row', role: 'acc', reps: [8, 12], n: 3, pri: 1 },
       { id: 'fb4', ex: 'leg_press', role: 'acc', reps: [8, 10], n: 2, pri: 2 },
@@ -245,8 +245,8 @@ Object.assign(TEMPLATES, {
 const NEW_PLAN_START = '2026-11-02'; // v2.5 plan; the deload week (Oct 26 – Nov 1) and everything before stays as it was
 const PLAN_GOALS = [ // shown on Settings → Goals, Progress and the coach (“my goals”)
   { ic: '📏', t: 'Look better — waist is the main metric', d: 'Chest, arms, shoulders up; waist down. Measure the waist at every Sunday check-in.' },
-  { ic: '⚖️', t: 'Weight 210+ → ~205 lb while adding muscle', d: 'Slow recomp, ~0.5 lb/week. Calories 2,500–2,600 · protein ~190 g.' },
-  { ic: '🏋️', t: 'Bench 225 for reps', d: 'Mon heavy top set + back-offs · Fri paused bench volume.' },
+  { ic: '⚖️', t: 'Weight 210+ → ~205 lb while adding muscle', d: 'Slow recomp, ~0.5 lb/week. Weigh in a few mornings a week.' },
+  { ic: '🏋️', t: 'Get stronger', d: 'Beat last time on the main lifts — double progression: more reps, then more weight.' },
   { ic: '🏊', t: 'Triathlon — future goal', d: 'No swimming for now. MTB + short runs keep the engine; swim comes back later.' },
 ];
 const FOOD_PLAN = ['3 home-cooked meals × 55–60 g protein + 1 high-protein snack ≈ 190 g/day — no shakes', 'Calories ≈ 2,500–2,600/day (copy the day’s totals from MyFitnessPal into the nightly log)', 'Weekends: keep the 3 protein meals', 'Drinking: max 1 night/week, 3–4 drinks, protein meal first'];
@@ -261,15 +261,15 @@ const KNEE_RULES = [
   'No hard lower-body work within 48 hours of hockey.',
   'Add only ONE new impact stressor per week.',
 ];
-const SLIP_RULE = 'If things slip: protect Upper A (heavy bench) + one more lift — at least 2 lifts every week — and the 3 protein meals. Hockey or a ride can replace any other day.';
+const SLIP_RULE = 'If things slip: protect Upper A + one more lift — at least 2 lifts every week. Hockey or a ride can replace any other day.';
 
 const WHY = {
-  PUSHD: 'Deload-week push: bench top set at about RPE 7 (leave 3 in the tank), then incline DB, shoulder press, dips or push-ups, laterals and triceps. Moved here because Mon/Tue were hard MTB days — upper body only until Friday.',
+  PUSHD: 'Deload-week push: dumbbell press top set at about RPE 7 (leave 3 in the tank), then incline DB, shoulder press, dips or push-ups, laterals and triceps. Moved here because Mon/Tue were hard MTB days — upper body only until Friday.',
   PULLD: 'Deload-week pull: rows, pull-ups or pulldowns, face pulls, rear delts and curls at about RPE 7. Keeps the legs fresh after back-to-back MTB days.',
   LOWD: 'Earliest lower day this week (two hard rides Mon/Tue). Deload: light and crisp, nothing grinding — hockey is Sunday.',
   PICK: 'You picked this session — it replaces the plan for the day and counts like any planned lift.',
   MIN: 'Minimum day: something beats nothing. 15–20 minutes keeps the streak alive without digging a recovery hole.',
-  UA: 'Heavy bench goes first while you’re fresh — getting stronger is now an explicit goal. One heavy top set of 4–6 (Base 5–6, Build 4–5, Sharpen 4–5 plus a heavy single) is the biggest strength signal per minute; 2–3 back-offs of 6–8 at −10% add hypertrophy volume without junk sets. Every working set is RPE 8–9 (1–2 reps left). Pull-ups, rows and incline DB press (deep stretch) hit chest and back twice a week; overhead triceps and cable laterals train arms and delts in the lengthened position, which grows them fastest. On a cut, expect modest bench gains — protein ≥190 g protects them.',
+  UA: 'Barbell bench once a week, as a normal lift: one top set plus back-offs with double progression — fill the rep range, then add weight. Every working set is RPE 8–9 (1–2 reps left). Pull-ups, rows and incline DB press (deep stretch) hit chest and back; overhead triceps and cable laterals train arms and delts in the lengthened position, which grows them fastest.',
   UB: 'Second bench day of the week: paused bench at RPE 8 grooves a tight, consistent bottom position and adds technique volume without beating you up before Monday’s heavy day. Back and delt work balances the pressing, and the easy spin adds calorie burn without leg fatigue.',
   LOW: 'Jumps come first because power needs fresh, fast muscle fibers. Then hinge and knee-friendly leg work in low reps with hard effort — strength without high-rep patellar stress.',
   RUN: 'Easy, conversational running builds the aerobic base (more mitochondria and capillaries) with low injury risk. Core work stabilizes hips and knees for hockey.',
@@ -278,8 +278,8 @@ const WHY = {
   RUN2: 'A second easy run adds aerobic volume. It sits on Monday, far from hockey, and is introduced alone to honor the one-new-stressor rule.',
   SWIM: 'Short repeats with rest let a beginner keep good form, so you practice good technique instead of struggle. Aerobic work with zero knee impact.',
   LONG: 'Long zone-2 work is the best tool for aerobic endurance and fat burning. Cycling is knee-friendly and keeps legs fresh for Sunday hockey.',
-  UB2: 'Shoulders and arms are what make the upper body look bigger. Moderate loads, 8–15 reps taken close to failure build size with little joint stress — and nothing here competes with Monday’s heavy bench.',
-  UC: 'Second bench day: paused bench 3×5–6 at RPE 8 adds quality bench volume (the fastest path to 225 for reps) and owns the bottom position. Back work keeps shoulders healthy and builds the V-taper.',
+  UB2: 'Shoulders and arms are what make the upper body look bigger. Moderate loads, 8–15 reps taken close to failure build size with little joint stress.',
+  UC: 'Dumbbell press for chest (deep stretch, easy on the shoulders), heavy rows and dips. Back work keeps shoulders healthy and builds the V-taper.',
   LOW2: 'Short and strength-focused on purpose: hockey and MTB already load your legs. A heavy hinge and a knee-friendly press for low reps keep leg strength without adding fatigue or patellar stress.',
   MTB: 'Mountain biking is your knee-friendly engine work. Keep most of it zone 2 (RPE 4–6) so Wednesday’s lower day stays on — a very hard ride counts toward the 48-h rule.',
   SAT: 'A short 25–30′ run (or MTB) keeps running fitness for a future triathlon without beating up the knees before Sunday hockey.',
@@ -294,7 +294,7 @@ const WHY = {
 const BLOCKS = [
   { n: 1, name: 'Base', start: '2026-10-05', end: '2026-11-01', grad: 'b1', desc: 'Build the engine. Easy run 25→35′, swim 10×25 → 6×50, bike 45→60′. Week 5 deload.' },
   { n: 2, name: 'Build', start: '2026-11-02', end: '2026-11-29', grad: 'b2', desc: 'New plan: Upper A/B/C + short Lower, Tue MTB, Sat 25–30′ run or MTB, Sun hockey. No swim for now. Thanksgiving deload.' },
-  { n: 3, name: 'Sharpen', start: '2026-11-30', end: '2026-12-27', grad: 'b3', desc: 'Same week shape, heavier bench top sets (2–3 reps + a single). MTB up to 60′. Finals week reduced.' },
+  { n: 3, name: 'Sharpen', start: '2026-11-30', end: '2026-12-27', grad: 'b3', desc: 'Same week shape, beat last time on every main lift. MTB up to 60′. Finals week reduced.' },
   { n: 4, name: 'Test', start: '2026-12-28', end: '2026-12-31', grad: 'b4', desc: 'Sharp, fresh, and tested on Dec 31.' },
 ];
 const TESTS = [
@@ -322,7 +322,7 @@ const DEFAULT_PROFILE = {
   injuries: { aclL: true, aclR: true, patella: true, flare: false, other: '' },
   diet: { approach: 'rules', meals: 4, pref: 'omnivore', alcohol: 1, flex: 1 },
 };
-const GOAL_LABEL = { fatloss: 'Fat loss — smaller waist', strength: 'Get stronger — bench 225 for reps', muscle: 'Build muscle — chest, arms, shoulders', endurance: 'Endurance (triathlon later)', explosive: 'Explosiveness', hockey: 'Hockey' };
+const GOAL_LABEL = { fatloss: 'Fat loss — smaller waist', strength: 'Get stronger', muscle: 'Build muscle — chest, arms, shoulders', endurance: 'Endurance (triathlon later)', explosive: 'Explosiveness', hockey: 'Hockey' };
 const hasKnee = P => !!(P.injuries && (P.injuries.aclL || P.injuries.aclR || P.injuries.patella));
 
 function computeTargets(P) {
@@ -510,7 +510,7 @@ function basePlan(k, P) {
     return { kind: 'cardio', code, cardio: c, title: c.title, sub: c.steps.map(s => s[0]).join(' · '), icon, color: c.mode === 'walk' ? 'bike' : c.mode, min: c.min, why: WHY[c.why || code] + (mod === 'deload' && code !== 'HOCKEY' ? ' ' + WHY.deload : '') };
   };
   const hockeyS = () => ({ kind: 'cardio', code: 'HOCKEY', cardio: { mode: 'hockey', title: 'Hockey', min: 75, steps: [['Game / skate', 'Warm up hips + groin first. Log knee pain after.']] }, title: 'Hockey 🏒', sub: 'Sunday skate', icon: 'H', color: 'hockey', min: 75, why: WHY.HOCKEY });
-  const testS = (key, big) => ({ kind: 'test', code: 'TEST', testKey: key, title: big ? 'Final Test Day 🏁' : 'Test Day', sub: big ? (k >= NEW_PLAN_START ? 'Waist · avg weight · Bench AMRAP · Pull-ups · Mile · Broad jump' : 'Mile · 100 yd swim · Pull-ups · Bench AMRAP · Broad jump · Waist') : k >= NEW_PLAN_START ? 'Waist · avg weight · pull-ups · bench AMRAP @ ~85% (no swim for now)' : 'Avg weight · waist · pull-ups · bench AMRAP @ ~85% (+ mile/swim/jump earlier this week)', icon: 'T', color: 'test', min: big ? 75 : 20, why: WHY.TEST });
+  const testS = (key, big) => ({ kind: 'test', code: 'TEST', testKey: key, title: big ? 'Final Test Day 🏁' : 'Test Day', sub: big ? (k >= NEW_PLAN_START ? 'Waist · avg weight · Pull-ups · Mile · Broad jump' : 'Mile · 100 yd swim · Pull-ups · Bench AMRAP · Broad jump · Waist') : k >= NEW_PLAN_START ? 'Waist · avg weight · pull-ups (no swim for now)' : 'Avg weight · waist · pull-ups · bench AMRAP @ ~85% (+ mile/swim/jump earlier this week)', icon: 'T', color: 'test', min: big ? 75 : 20, why: WHY.TEST });
   const tpl = weeklyTemplate(P, k), np = k >= NEW_PLAN_START;
   if (wk === 14) {
     if (d === 0) sessions.push(lift('upperA', 'UA'));

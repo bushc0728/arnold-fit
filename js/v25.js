@@ -4,7 +4,7 @@
 'use strict';
 const BACKDATE_DAYS = 7;
 const CAL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
-const TRAIN_RULES = ['Hockey or a hard ride can replace a lift day — log it with ↪ Swap.', 'Keep at least 2 lifts every week (Upper A heavy bench + one more).', 'No heavy lower body within 48 h of hard hockey or a hard ride (effort ≥7).'];
+const TRAIN_RULES = ['Hockey or a hard ride can replace a lift day — log it with ↪ Swap.', 'Keep at least 2 lifts every week (Upper A + one more).', 'No heavy lower body within 48 h of hard hockey or a hard ride (effort ≥7).'];
 const TRAIN_RULE = 'Training rule: hockey or a hard ride can replace a lift — but keep at least 2 lifts a week, and no heavy lower body within 48 h of hard hockey or a hard ride.';
 const QA_TYPES = {
   hockey: { ic: '🏒', label: 'Hockey', mode: 'hockey', color: 'hockey', dur: 75, rpe: 8, dist: null },

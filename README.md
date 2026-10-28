@@ -5,6 +5,15 @@ It's plain static files (vanilla JS, no build step, no backend). All data lives 
 
 **Live:** https://bushc0728.github.io/arnold-fit/
 
+## v2.8 — Plan tab, food out
+
+- **Food UI removed** (tab, tracker, search, scanner, My Meals, protein strip, kcal/protein in the nightly log, food nudges). Food data stays in localStorage, just hidden.
+- **Only food item left:** a daily **No sweets** check-off on Today with a streak (counted from Oct 28 so streaks don't break).
+- **Plan tab** (replaces Food): this week Mon–Sun with today highlighted and done / swapped / missed status; tap any day (past or future) for an exercise preview, Start or Log it. Below: weeks ahead to Dec 31, deload (Nov 23) and lighter week (Dec 7) labeled.
+- **Bench**: barbell bench once a week on Monday Upper A, normal double progression; Upper B/C use other presses. No bench strip, level-ups, or 225 goal.
+- **Progress** leads with workout history and weight, with a weigh-in box.
+- Migration: one-time, backs up the raw store to `arnoldfit.v1.backup-v2.7`; protein habit moved to `S.v28.hiddenHabits`. Cache `arnoldfit-v2.8.0`.
+
 ## v2.7 (Oct 27, 2026) — "too much in my app": built around the workout
 - **4 tabs:** Today · Food · Progress · More. Program, Devotional, Habits, Coach, Motivation, Guide, Settings and Data backup live under **More** (sub-pages have a ‹ back button).
 - **Today ≈ one screen:** date + 📅 → (one-time import card / one contextual tip such as the 48 h legs warning) → **workout hero** with the exercise list visible (target sets×reps @ weight + last time per lift), one big ▶ Start workout, and Already did it · Pick another · Minimum day · Log activity → checklist icon row (Train, Protein, Mobility, Devo, Sleep) → Grow strip (🔥 streak · Bench → 225 · protein). Weekly recap shows Sun/Mon only (dismissible). 🌙 Nightly log only in the evening.

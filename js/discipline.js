@@ -128,7 +128,7 @@ function cmdCommit() { discState().commit[today()] = Date.now(); save(); const n
 function cmdCheckin() {
   const k = today(), ws = checkinWs(k) || weekStart(k), { av, prev, kAvg, a } = weekStats(ws, k), done = discState().checkin[ws];
   let txt = `**Weekly check-in · week of ${fmtDate(ws)}**\n• Weight 7-day avg: ${av ? `**${U.wOut(av.v.toFixed(1))} ${wu()}**${prev ? ` (${av.v - prev.v >= 0 ? '+' : ''}${U.wOut((av.v - prev.v).toFixed(1))} vs last week)` : ''}` : 'no weigh-ins yet'}\n• Adherence: **${a.score}%** · ${a.full}/${a.days} perfect days\n• Knee avg: ${kAvg == null ? '—' : kAvg.toFixed(1) + '/10'}\n• Waist: ${done && done.waist != null ? U.lOut(done.waist) + ' ' + lu() : 'not logged — say “waist 34.5”'}\n${checkinVerdict(a.score)}`;
-  if (av && prev) { const drop = prev.v - av.v; txt += drop < 0.5 ? '\nFat loss is #1: weekly drop under 0.5 lb — tighten food logging before cutting calories.' : drop > 1.5 ? '\nDropping fast (>1.5 lb/wk) — eat a bit more to protect bench strength.' : '\nRate is in the 0.5–1.5 lb sweet spot. Hold.'; }
+  if (av && prev) { const drop = prev.v - av.v; txt += drop < 0.5 ? '\nFat loss is #1: weekly drop under 0.5 lb — tighten up the no-sweets rule.' : drop > 1.5 ? '\nDropping fast (>1.5 lb/wk) — eat a bit more to protect muscle.' : '\nRate is in the 0.5–1.5 lb sweet spot. Hold.'; }
   return { text: txt };
 }
 function cmdWaist(v) { const inch = U.lIn(+v); if (!(inch > 15 && inch < 80)) return { text: 'That waist number looks off — try e.g. “waist 34.5”.' }; const ws = checkinWs(today()) || weekStart(today()); saveCheckinRec(ws, inch); return { text: `📏 Waist **${U.lOut(inch)} ${lu()}** logged for today and saved to this week’s check-in.` }; }

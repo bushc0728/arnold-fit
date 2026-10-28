@@ -186,10 +186,13 @@ function cmdGoals() {
   if (S.profile.goals.includes('hockey')) { // v2.5 plan
     const st = S.settings, cur = (rolling7().slice(-1)[0] || {}).v, wt = waistTrend(), bn = benchNow(), t0 = withActive(() => nextTarget('flat_bench', { role: 'bench' }));
     let x = `**#1 Look better — waist is the main metric.** Chest, arms, shoulders up, waist down.${wt ? ` Waist now **${U.lOut(wt.last)} ${lu()}**.` : ' Log your waist at the Sunday check-in.'}`;
-    x += `\n**Weight:** ${U.wOut(st.startWeight)} → ~${U.wOut(st.goalWeight)} ${U.w()} by Dec 31 while adding muscle${cur ? ` (7-day avg now ${U.wOut(cur)})` : ''}. ~2,500–2,600 kcal, ~${st.protein} g protein.`;
-    x += `\n**Bench 225 for reps:** ${bn ? `e1RM **${U.wOut(bn.v, 0)} ${U.w()}**` : 'no baseline yet'}.${t0 ? ` Next heavy bench: **${withActive(() => targetText('flat_bench', { role: 'bench' }))}**.` : ''} Mon Upper A = heavy top set + back-offs, Fri Upper C = paused bench 3×5–6.`;
+    x += `
+**Weight:** ${U.wOut(st.startWeight)} → ~${U.wOut(st.goalWeight)} ${U.w()} by Dec 31 while adding muscle${cur ? ` (7-day avg now ${U.wOut(cur)})` : ''}.`;
+    x += `
+**Get stronger:** beat last time on the main lifts — fill the rep range, then add weight. Barbell bench is Monday (Upper A) as a normal lift; Upper B and C use dumbbell presses and dips.`;
     x += `\n**Triathlon** is a future goal — no swimming for now.\n**Week:** Mon Upper A · Tue MTB · Wed short Lower · Thu Upper B (shoulders/arms) · Fri Upper C · Sat 25–30′ run or MTB · Sun hockey. Swaps are fine, keep ≥2 lifts a week.`;
-    x += `\n**Food:** 3 home-cooked meals × 55–60 g protein + 1 high-protein snack ≈ 190 g, no shakes. Weekends keep the 3 protein meals. Drinks: max 1 night/week, 3–4, protein meal first.`;
+    x += `
+**No sweets** — one daily check-off on Today.`;
     return { text: x };
   }
   const g = benchGoal(), cur = (rolling7().slice(-1)[0] || {}).v, st = S.settings, P = S.profile;
@@ -216,9 +219,9 @@ function coachMsgHtml(m, i) {
 }
 function renderCoach() {
   const o = $('#coach'); if (!o || o.classList.contains('hidden')) return;
-  const ctx = (S.profile.goals.includes('strength') ? 'Goals: fat loss #1 · bench strength · ' : '') + (S.active ? `Editing: ${S.active.title} (in progress)` : (() => { const s = planLiftSessions(today())[0]; if (s) return `Today: ${s.title}`; const w = doneRecent()[0]; return w ? `Most recent: ${w.title} · ${fmtDate(w.date)}` : 'No sessions logged yet'; })());
+  const ctx = (S.profile.goals.includes('strength') ? 'Goals: fat loss #1 · get stronger · ' : '') + (S.active ? `Editing: ${S.active.title} (in progress)` : (() => { const s = planLiftSessions(today())[0]; if (s) return `Today: ${s.title}`; const w = doneRecent()[0]; return w ? `Most recent: ${w.title} · ${fmtDate(w.date)}` : 'No sessions logged yet'; })());
   const msgs = S.chat.length ? S.chat.map(coachMsgHtml).join('') : `<div class="msg bot"><div class="bub">Hey — I’m your coach. Tell me what you actually did and I’ll fix the log, the plan, and your next targets.<br><br>e.g. <b>bench 185 for 5, 5, 4</b> · <b>I only did 2 sets of bench</b> · <b>swap the leg press for step-ups</b></div></div>`;
-  const chips = ['what’s left today?', 'did mobility', 'check-in', 'how’s my bench?', 'bench 185 for 5, 5, 4', 'I only did 2 sets of bench', 'add a set of pull-ups 8 reps', 'skip laterals today', 'swap the leg press for step-ups', 'help'];
+  const chips = ['what’s left today?', 'did mobility', 'check-in', 'my goals', 'bench 185 for 5, 5, 4', 'I only did 2 sets of bench', 'add a set of pull-ups 8 reps', 'skip laterals today', 'swap the leg press for step-ups', 'help'];
   o.innerHTML = `<div class="wk-top"><button class="icon-btn tap" data-a="closeCoach" aria-label="Close coach">✕</button><div><div class="tt">Coach</div><div class="el small" id="coachCtx">${esc(ctx)}</div></div><button class="icon-btn tap" data-a="clearCoach" aria-label="Clear chat" title="Clear chat">🧹</button></div><div class="chatlog" id="chatlog">${msgs}</div><div class="chatchips">${chips.map(c => `<button class="chip tap" data-a="coachChip" data-t="${esc(c)}">${esc(c)}</button>`).join('')}</div><form class="chatbar" id="chatForm"><input class="inp" id="chatIn" autocomplete="off" placeholder="Tell the coach what you did…" aria-label="Message"><button class="btn sm tap" type="submit" id="chatSend">Send</button></form>`;
   const lg = $('#chatlog'); lg.scrollTop = lg.scrollHeight;
 }

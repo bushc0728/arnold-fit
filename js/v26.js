@@ -6,7 +6,7 @@ const PICKS = {
   push: { ic: '🫸', label: 'Push', tpl: 'pushP', title: 'Push · your pick', cats: ['push'] },
   pull: { ic: '🧗', label: 'Pull', tpl: 'pullP', title: 'Pull · your pick', cats: ['pull'] },
   legs: { ic: '🦵', label: 'Legs', sub: 'knee-friendly', tpl: 'lowerS', title: 'Legs (knee-friendly) · your pick', cats: ['legs'] },
-  upper: { ic: '💪', label: 'Upper', sub: 'heavy bench', tpl: 'upperA', title: 'Upper · your pick', cats: ['push', 'pull'] },
+  upper: { ic: '💪', label: 'Upper', sub: 'chest · shoulders · arms', tpl: 'upperB2', title: 'Upper · your pick', cats: ['push', 'pull'] },
   full: { ic: '🏋️', label: 'Full Body', tpl: 'fullP', title: 'Full Body · your pick', cats: ['push', 'pull', 'legs'] },
   arms: { ic: '🦾', label: 'Arms + Shoulders', tpl: 'upperB2', title: 'Arms + Shoulders · your pick', cats: ['push'] },
   hockey: { ic: '🏒', label: 'Hockey', qa: ['hockey', null, 75, 8], cats: ['cardio'] },
@@ -113,7 +113,7 @@ ACT.pick = (el, d) => {
     const dp = dayPlan(k), todo = dp ? dp.sessions.filter(s => s.kind !== 'test' && sessStatus(s) === 'todo') : [];
     if (!todo.length) return toast('Nothing left on the plan — enjoy the rest 💤');
     if (!confirm(`Rest ${k === today() ? 'today' : fmtDow(k)}? This skips ${todo.map(s => s.title).join(' + ')}.\n\nTip: a 15–20′ Minimum day keeps the streak alive — rest doesn’t.`)) return;
-    todo.forEach(s => { S.schedule.skips[s.key] = { reason: 'Rest day (picked)', t: Date.now() }; }); UNDO_PICK = { rest: todo.map(s => s.key) }; save(); toast('Rest day logged — sleep, protein, mobility', 'pickUndo'); return rerenderKeep();
+    todo.forEach(s => { S.schedule.skips[s.key] = { reason: 'Rest day (picked)', t: Date.now() }; }); UNDO_PICK = { rest: todo.map(s => s.key) }; save(); toast('Rest day logged — sleep, mobility', 'pickUndo'); return rerenderKeep();
   }
   const lg = legsGuard(k);
   if ((t === 'legs' && lg && lg.grey && !confirm(`⚠️ ${lg.msg}.\nThe rule is no heavy lower body within 48 h of hard hockey or a hard ride. Do it anyway (keep it light)?`)) || (t === 'full' && lg && lg.grey && !confirm(`⚠️ ${lg.msg}. Full Body includes legs — keep them light. Continue?`))) return;
