@@ -15,7 +15,7 @@ const STARTER_VIDEOS = [ // verified via YouTube oEmbed (200) — titles are the
 ];
 function defaultState() {
   return {
-    v: 4, created: Date.now(), onboarded: false, profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
+    v: 5, created: Date.now(), onboarded: false, profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
     settings: {
       name: 'Christopher', kcal: 2550, protein: 190, startWeight: 210, goalWeight: 205, goalDate: PLAN_END,
       units: { w: 'lb', d: 'mi', s: 'yd', len: 'in' }, rest: { main: 180, acc: 90 }, haptics: true, sound: true,
@@ -54,11 +54,14 @@ function migrate(raw) {
   out.profile = Object.assign(JSON.parse(JSON.stringify(DEFAULT_PROFILE)), s.profile || {});
   out.profile.injuries = Object.assign({}, DEFAULT_PROFILE.injuries, (s.profile || {}).injuries || {});
   out.profile.diet = Object.assign({}, DEFAULT_PROFILE.diet, (s.profile || {}).diet || {});
-  out.food = Object.assign({ log: {}, custom: [], meals: {} }, s.food || {});
+  out.food = Object.assign({ log: {}, custom: [], meals: {}, myMeals: [] }, s.food || {});
+  if (!Array.isArray(out.food.myMeals)) out.food.myMeals = []; if (!Array.isArray(out.food.custom)) out.food.custom = []; // v2.6: saved meals (additive)
   out.verse = Object.assign({ seen: [], favs: [], byDate: {}, order: null }, s.verse || {});
   out.devo = Object.assign(defaultState().devo, s.devo || {});
   { const hb = out.settings.habits.find(h => h.id === 'bible'); if (hb && hb.label === 'Read today’s verse') hb.label = 'Daily devotional'; }
-  out.schedule = Object.assign({ moves: {}, skips: {}, off: {}, replaced: {} }, s.schedule || {});
+  out.schedule = Object.assign({ moves: {}, skips: {}, off: {}, replaced: {}, pick: {} }, s.schedule || {});
+  if (!out.schedule.pick || typeof out.schedule.pick !== 'object') out.schedule.pick = {}; // v2.6: “pick today’s workout” overrides
+  out.v26 = Object.assign({}, s.v26 && typeof s.v26 === 'object' ? s.v26 : {}); // v2.6 one-time flags (import card, …)
   if (!out.schedule.replaced || typeof out.schedule.replaced !== 'object') out.schedule.replaced = {};
   out.nightly = Object.assign({}, s.nightly && typeof s.nightly === 'object' ? s.nightly : {});
   if (!Array.isArray(out.workouts)) out.workouts = [];
@@ -89,7 +92,8 @@ function migrate(raw) {
     if (out.profile.goalWeight === 200) out.profile.goalWeight = 205;
     if (out.settings.kcal === 2450) { out.settings.kcal = 2550; (out.kcalLog = Array.isArray(out.kcalLog) ? out.kcalLog : []).push({ date: dkey(new Date()), from: 2450, to: 2550, note: 'v2.5 plan: 2,500–2,600 kcal' }); }
   }
-  out.v = 4;
+  if (!s.v || s.v < 5) { if (s.v === 4) out.migratedV5 = Date.now(); } // ---- v4 → v5 (v2.6): additive only — food macros/serving info, My Meals, workout picks. Nothing renamed or removed.
+  out.v = 5;
   return out;
 }
 let S;
@@ -98,7 +102,7 @@ let S;
   try {
     const parsed = JSON.parse(raw);
     // v2.5 safety net: keep an untouched copy of pre-v4 data before the first migration (one-time, never overwritten)
-    if (raw && parsed && parsed.v && parsed.v < 4) { try { if (!localStorage.getItem(STORE_KEY + '.backup-v' + parsed.v)) localStorage.setItem(STORE_KEY + '.backup-v' + parsed.v, raw); } catch (e) {} }
+    if (raw && parsed && parsed.v && parsed.v < 5) { try { if (!localStorage.getItem(STORE_KEY + '.backup-v' + parsed.v)) localStorage.setItem(STORE_KEY + '.backup-v' + parsed.v, raw); } catch (e) {} }
     S = migrate(parsed);
   } catch (e) {
     // never silently wipe: stash whatever was stored before falling back to a fresh state
@@ -286,23 +290,23 @@ function benchTarget(k) {
   else if (last) {
     const tp = last.top, e = last.e, planned = Math.max(1, e.planned || e.sets.length), rpe = tp.rpe; from = last.k; did = e.sets.filter(s => s.done && s.r != null).length;
     const same = last.heavy && e.reps && e.reps[0] === lo && e.reps[1] === hi, wl = U.wOut(tp.w) + ' ' + U.w();
-    if (!same) { w = loadFor(last.e1, lo); top = lo; rule = 'phase'; note = `${ph.name} phase: top set ${lo}–${hi} @RPE ${ph.top} — load from your e1RM ${U.wOut(last.e1, 0)} ${U.w()}`; }
+    if (!same) { w = loadFor(last.e1, lo); if (tp.w && tp.r >= lo) w = Math.max(w, tp.r >= hi ? roundLoad(tp.w + (kg ? 2.5 * 2.20462 : 5)) : tp.w); /* v2.6: never nudge below a top set he already owns */ top = lo; rule = 'phase'; note = `${ph.name} phase: top set ${lo}–${hi} @RPE ${ph.top} — load from your e1RM ${U.wOut(last.e1, 0)} ${U.w()}`; }
     else if (did < planned) { w = tp.w; top = Math.max(lo, Math.min(hi, tp.r)); rule = 'hold'; note = `Did ${did}/${planned} sets last time → hold ${wl}, complete all ${planned}`; }
     else if (tp.r >= hi) { const big = rpe != null && rpe <= 7.5, inc = kg ? (big ? 5 : 2.5) * 2.20462 : big ? 10 : 5; w = roundLoad(tp.w + inc); top = lo; rule = 'add_weight'; note = `Top set ${wl} × ${tp.r}${rpe ? ' @' + rpe : ''} hit the top of ${lo}–${hi} → ${kg ? (big ? '+5 kg' : '+2.5 kg') : big ? '+10 lb' : '+5 lb'}`; }
     else if (tp.r >= lo) { if (rpe != null && rpe >= 9.5) { w = tp.w; top = tp.r; rule = 'hold'; note = `${tp.r} reps but RPE ${rpe} — own ${wl} × ${tp.r} before adding reps`; } else { w = tp.w; top = tp.r + 1; rule = 'add_rep'; note = `Top set in range → +1 rep at ${wl}`; } }
     else if (tp.r >= lo - 1) { w = tp.w; top = lo; rule = 'hold'; note = `1 rep short of ${lo} → hold ${wl}`; }
     else { w = roundLoad(tp.w * 0.95); top = lo; rule = 'reset'; note = `Top set fell short (${tp.r} < ${lo}) → reset −5% to ${U.wOut(roundLoad(tp.w * 0.95))} ${U.w()} and rebuild`; }
   } else return null;
-  const bo = { w: roundLoad(w * 0.9), r: top + 1 }, single = ph.single ? loadFor(w * (1 + (top + 1.5) / 30), 1, 2) : null;
+  const bo = { w: roundLoad(w * 0.9), r: Math.min(10, Math.max(6, top + 2)) }, /* v2.6: back-offs 6–10 reps at −10% */ single = ph.single ? loadFor(w * (1 + (top + 1.5) / 30), 1, 2) : null;
   const sets = layout.map(s => s.tag === 'Single' ? { w: single, r: 1 } : s.tag === 'Top' ? { w, r: top } : { w: bo.w, r: bo.r });
   return { bench: true, phase: ph.name, from, planned: layout.length, did, rule, w, top, bo, single, sets, reps: sets.map(s => s.r), note };
 }
 
 /* ---------- food ---------- */
 function foodDay(k) { return S.food.log[k] || []; }
-function foodTotals(k) { return foodDay(k).reduce((a, f) => ({ kcal: a.kcal + f.kcal * (f.qty || 1), p: a.p + f.p * (f.qty || 1) }), { kcal: 0, p: 0 }); }
+function foodTotals(k) { return foodDay(k).reduce((a, f) => { const q = f.qty || 1; return { kcal: a.kcal + (+f.kcal || 0) * q, p: a.p + (+f.p || 0) * q, c: a.c + (+f.c || 0) * q, f: a.f + (+f.f || 0) * q }; }, { kcal: 0, p: 0, c: 0, f: 0 }); } // v2.6: + carbs/fat (older entries count as 0)
 function mfpFor(k) { return (S.body[k] || {}).mfp || null; } // v2.5: day totals copied from MyFitnessPal in the nightly log { kcal, p }
-function proteinFor(k) { const f = foodDay(k), m = mfpFor(k), app = f.length ? Math.round(foodTotals(k).p) : ((S.body[k] || {}).protein || 0); return m && m.p != null ? Math.max(m.p, app) : app; }
+function proteinFor(k) { const f = foodDay(k), m = mfpFor(k), app = f.length ? Math.round(foodTotals(k).p) : ((S.body[k] || {}).protein || 0); return m && m.p != null ? m.p : app; } // v2.6: the food log feeds it; a number typed in the nightly log is a manual override
 function kcalFor(k) { const m = mfpFor(k); if (m && m.kcal != null) return m.kcal; const f = foodDay(k); return f.length ? Math.round(foodTotals(k).kcal) : null; }
 function fuelAvg7(endK) { // 7-day averages over the days that have numbers
   const ks = [...Array(7)].map((_, i) => addDays(endK, -i));

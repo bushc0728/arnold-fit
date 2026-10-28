@@ -5,6 +5,34 @@ It's plain static files (vanilla JS, no build step, no backend). All data lives 
 
 **Live:** https://bushc0728.github.io/arnold-fit/
 
+## v2.6 (Oct 27, 2026) — "simple, fun, easy, but most of all GROW ME"
+
+- **Food tab (built-in calorie tracker, no MyFitnessPal needed):** kcal ring vs 2,550, protein vs 190 g, carbs and fat. It has Breakfast/Lunch/Dinner/Snack cards and a Day/Week view (avg kcal, avg protein, days at the protein goal).
+- **Fast logging:**
+  - search covering your foods, starter foods (USDA FDC values cited in `js/fooddb.js`), Open Food Facts and USDA FoodData Central (DEMO_KEY, results cached)
+  - one-tap re-log from Recent and Frequent, Copy yesterday or any day, My Meals, custom foods and Quick add
+  - servings in g, oz or serving with a stepper and live macros
+- **Barcode scan:** the vendored ZXing library (`vendor/`) loads only when the scanner opens. You can type the barcode if the camera is unavailable.
+- **Backdating** up to 7 days.
+- **Food feeds the rest of the app:** totals feed the nightly kcal/protein (a typed number overrides), the protein habit auto-checks at ≥190 g, and the totals feed Progress 7-day averages.
+- **Simple Today:**
+  - one **▶ Start today's workout** button
+  - Pick another / ⚡ Minimum day ("Something > nothing.")
+  - Grow card: 🔥 streak, bench → 225 bar with level-ups, protein days, weight and waist trend, and a "you got stronger" recap
+  - everything else sits in collapsed *More* sections
+- **Pick today's workout:** Push, Pull, Legs, Upper, Full, Arms, Hockey, MTB, Run or Rest, with a recommendation, a 48-h legs guard and a week balance view. Minimum day counts toward the streak but not toward the 2-lift rule.
+- **One-time import** of the Oct 25–27 activities, and a deload Push/Pull on Oct 28–29.
+- **Hypertrophy audit:**
+  - every working set is RPE 8–9
+  - main lifts: top set 4–6 plus back-offs of 6–10 at −10%
+  - accessories: 2–3 sets of 8–15
+  - lengthened-position exercises: incline DB, overhead triceps, incline/Bayesian curls, cable laterals, seated leg curl, long-pause calves
+  - rest shown per exercise
+  - a *Weekly sets per muscle* view on Train
+  - Nov 2+ weekly hard sets: chest 13, back 11, side delts 9.5, rear delts 7.5, biceps 10.5, triceps 12, quads 3, hams 6, glutes 4.5, calves 6 (legs low on purpose because of hockey and MTB). Every session is ≤60 min.
+- **Real PRs only:** numbers saved from a prefilled target without a tap or edit are flagged and never award a PR. You can confirm them from the summary.
+- **Schema v5** migrates v4 data in place. A backup is written first to `arnoldfit.v1.backup-v4`.
+
 ## v2.5 (Oct 27, 2026)
 - **New plan from Nov 2** (the deload week Oct 26–Nov 1 is unchanged): Mon Upper A (heavy bench top set + back-offs) · Tue MTB · Wed short, knee-friendly Lower · Thu Upper B (shoulders/arms) · Fri Upper C (paused bench volume + back) · Sat 25–30′ run or MTB · Sun hockey. No swimming in upcoming weeks.
 - **Goals through Dec 31** (Settings → Goals, coach "goals"): waist is the main metric; 210+ → ~205 lb while adding muscle; bench 225 for reps; triathlon parked. Food plan: 3 home-cooked meals × 55–60 g protein + 1 snack ≈ 190 g, no shakes; weekends keep the 3 meals; drinks ≤1 night/week (3–4), protein meal first.

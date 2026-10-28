@@ -72,6 +72,10 @@ const EX = {
   oh_db_ext:       { n: 'Overhead DB Triceps Ext', m: 'Triceps', eq: 'Dumbbell', db: 1, kf: 1, cue: 'Both hands on one DB, deep stretch.' },
   copenhagen:      { n: 'Copenhagen Plank (per side)', m: 'Adductors', eq: 'Bench', kind: 'hold', cue: 'Short lever (knee on bench) if needed. Log seconds.', alts: ['side_plank'] },
   side_plank:      { n: 'Side Plank (per side)', m: 'Core', eq: 'None', kind: 'hold', kf: 1, cue: 'Straight line, ribs down. Log seconds.' },
+  pushup:          { n: 'Push-up', m: 'Chest', eq: 'Bodyweight', added: 1, kf: 1, cue: 'Hands under shoulders, body in one line, chest to fist height.' },
+  incline_curl:    { n: 'Incline DB Curl', m: 'Biceps', eq: 'Dumbbells', db: 1, cue: 'Bench at 45–60°, arms hang behind you — full stretch, no swing.', alts: ['bayesian_curl', 'ez_curl', 'hammer_curl'] },
+  bayesian_curl:   { n: 'Bayesian Cable Curl', m: 'Biceps', eq: 'Cable', cue: 'Face away from the cable, arm behind the body — curl from the stretch.', alts: ['incline_curl', 'cable_curl', 'ez_curl'] },
+  band_pull:       { n: 'Band Pull-Apart', m: 'Rear delts', eq: 'Band', kf: 1, cue: 'Straight arms, squeeze shoulder blades, slow return.' },
 };
 for (const id in EX) { EX[id].id = id; EX[id].kind = EX[id].kind || 'w'; }
 // knee-friendly alternatives for upper lifts = equipment swaps (no knee load anyway)
@@ -103,12 +107,12 @@ const EX_ALIASES = {
 };
 
 /* roles: main = 1 top set @RPE9 + back-offs ~10% lighter; acc = 2 hard sets @RPE9–10
-   bench = heavy bench: (Sharpen: heavy single) + 1 top set by phase + 2–3 back-offs −10%; tech = 3 × 5–6 @RPE 7–8 technique sets
+   bench = heavy bench: (Sharpen: heavy single) + 1 top set by phase + 2–3 back-offs −10%; tech = 3 × 5–6 @RPE 8 technique sets (v2.6)
    pri: 1 = never trimmed, 2 = kept at ≥45 min, 3 = kept at ≥60 min. v2.2: bench is the first lift on both upper days. */
 const BENCH_PHASE = {
-  base:    { key: 'base', name: 'Base', reps: [5, 6], top: '8–9', bo: 3, desc: 'top set ~5 @RPE 8–9 + 3 back-offs −10%' },
-  build:   { key: 'build', name: 'Build', reps: [3, 4], top: '8–9', bo: 3, desc: 'top set 3–4 @RPE 8–9 + 3 back-offs −10%' },
-  sharpen: { key: 'sharpen', name: 'Sharpen', reps: [2, 3], top: '9', bo: 2, single: true, desc: 'heavy single @RPE 8, top set 2–3 @RPE 9 + 2 back-offs −10%' },
+  base:    { key: 'base', name: 'Base', reps: [5, 6], top: '8–9', bo: 3, desc: 'top set 5–6 @RPE 8–9 + 3 back-offs × 7–8 at −10%' },
+  build:   { key: 'build', name: 'Build', reps: [4, 5], top: '8–9', bo: 3, desc: 'top set 4–5 @RPE 8–9 + 3 back-offs × 6–8 at −10%' }, // v2.6 hypertrophy audit: top sets stay in 4–6
+  sharpen: { key: 'sharpen', name: 'Sharpen', reps: [4, 5], top: '9', bo: 2, single: true, desc: 'heavy single @RPE 8, top set 4–5 @RPE 9 + 2 back-offs × 6–7 at −10%' },
 };
 function benchPhase(k) { const b = blockFor(k || PLAN_START) || (k > PLAN_END ? BLOCKS[3] : BLOCKS[0]); return b.n === 1 ? BENCH_PHASE.base : b.n === 2 ? BENCH_PHASE.build : BENCH_PHASE.sharpen; }
 function slotReps(slot, k) { return slot.role === 'bench' ? benchPhase(k).reps : slot.reps; }
@@ -154,35 +158,87 @@ const TEMPLATES = {
 /* v2.5 — new plan from Mon Nov 2, 2026 (look better: chest/arms/shoulders + smaller waist, ~205 lb, bench 225 for reps).
    Old templates above stay untouched so past weeks still render exactly as logged. */
 Object.assign(TEMPLATES, {
+  /* v2.6 hypertrophy audit (Nov 2 plan + picks): ~10–12 hard sets/muscle/week, most muscles 2×/week, all working sets RPE 8–9,
+     main lift = top set 4–6 + 2–3 back-offs 6–10 at −10%, accessories 2–3 × 8–15 near failure, lengthened-position picks,
+     knee-safe for both ACLs (no high-rep knee loading). n = hard sets (accessories). Sessions ≤ 60 min incl. warm-up. */
+  upperA2: {
+    title: 'Upper A', icon: 'U', color: 'lift', focus: 'Heavy bench · Pull-ups · Incline · Arms + delts', est: 55,
+    slots: [
+      { id: 'a2b', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
+      { id: 'a2p', ex: 'weighted_pullup', role: 'main', reps: [4, 6], pri: 1 },
+      { id: 'a2i', ex: 'incline_db', role: 'acc', reps: [8, 12], n: 2, pri: 1 },
+      { id: 'a2r', ex: 'cs_row', role: 'acc', reps: [8, 12], n: 2, pri: 2 },
+      { id: 'a2t', ex: 'oh_triceps', role: 'acc', reps: [10, 15], n: 2, ss: 'Superset', pri: 2 },
+      { id: 'a2l', ex: 'cable_lateral', role: 'acc', reps: [12, 15], n: 3, ss: 'Superset', pri: 2 },
+    ],
+  },
   upperB2: {
-    title: 'Upper B', icon: 'U', color: 'lift', focus: 'Shoulders · Arms · Upper chest', est: 55,
+    title: 'Upper B', icon: 'U', color: 'lift', focus: 'Shoulders · Arms · Upper chest · Lats', est: 55,
     slots: [
       { id: 'ub2a', ex: 'seated_db_press', role: 'main', reps: [6, 8], pri: 1 },
-      { id: 'ub2b', ex: 'incline_db', role: 'acc', reps: [8, 10], pri: 1 },
-      { id: 'ub2c', ex: 'lateral_raise', role: 'acc', reps: [10, 15], pri: 2 },
-      { id: 'ub2d', ex: 'ez_curl', role: 'acc', reps: [8, 12], ss: 'Superset', pri: 2 },
-      { id: 'ub2e', ex: 'oh_triceps', role: 'acc', reps: [8, 12], ss: 'Superset', pri: 2 },
-      { id: 'ub2f', ex: 'rear_delt_fly', role: 'acc', reps: [12, 15], pri: 3 },
-      { id: 'ub2g', ex: 'hammer_curl', role: 'acc', reps: [10, 12], pri: 3 },
+      { id: 'ub2h', ex: 'lat_pulldown', role: 'acc', reps: [8, 12], n: 3, pri: 1 },
+      { id: 'ub2b', ex: 'incline_db', role: 'acc', reps: [8, 12], n: 2, pri: 1 },
+      { id: 'ub2c', ex: 'cable_lateral', role: 'acc', reps: [12, 15], n: 3, pri: 2 },
+      { id: 'ub2d', ex: 'incline_curl', role: 'acc', reps: [8, 12], n: 3, ss: 'Superset', pri: 2 },
+      { id: 'ub2e', ex: 'oh_triceps', role: 'acc', reps: [10, 15], n: 2, ss: 'Superset', pri: 2 },
+      { id: 'ub2f', ex: 'rear_delt_fly', role: 'acc', reps: [12, 15], n: 2, pri: 3 },
     ],
   },
   upperC: {
-    title: 'Upper C', icon: 'U', color: 'lift', focus: 'Bench volume (paused 3×5–6) · Back', est: 55,
+    title: 'Upper C', icon: 'U', color: 'lift', focus: 'Paused bench volume · Rows · Dips · Rear delts · Calves', est: 55,
     slots: [
       { id: 'ucp', ex: 'paused_bench', role: 'tech', reps: [5, 6], pri: 1 },
-      { id: 'uc2', ex: 'lat_pulldown', role: 'main', reps: [6, 10], pri: 1 },
-      { id: 'uc3', ex: 'cable_row', role: 'acc', reps: [8, 10], pri: 2 },
-      { id: 'uc4', ex: 'cable_fly', role: 'acc', reps: [10, 15], pri: 2 },
-      { id: 'uc5', ex: 'face_pull', role: 'acc', reps: [12, 15], pri: 3 },
+      { id: 'uc2', ex: 'cs_row', role: 'main', reps: [6, 8], pri: 1 },
+      { id: 'uc3', ex: 'dips', role: 'acc', reps: [6, 10], n: 2, ss: 'Superset', pri: 2 },
+      { id: 'uc4', ex: 'cable_lateral', role: 'acc', reps: [12, 15], n: 2, ss: 'Superset', pri: 2 },
+      { id: 'uc5', ex: 'face_pull', role: 'acc', reps: [12, 15], n: 3, ss: 'Superset B', pri: 2 },
+      { id: 'uc6', ex: 'bayesian_curl', role: 'acc', reps: [10, 12], n: 2, ss: 'Superset B', pri: 2 },
+      { id: 'uc7', ex: 'seated_calf', role: 'acc', reps: [10, 15], n: 3, pri: 3 },
     ],
   },
   lowerS: {
-    title: 'Lower · Strength (short)', icon: 'L', color: 'lower', focus: 'Hinge · Knee-friendly legs · low volume (hockey + MTB already load the legs)', est: 40,
+    title: 'Lower · Strength (short)', icon: 'L', color: 'lower', focus: 'RDL · Leg press (pain-free) · Seated curl · Calves — knee-safe, low volume (hockey + MTB load the legs)', est: 45,
     slots: [
-      { id: 'ls1', ex: 'rdl', role: 'main', reps: [5, 7], pri: 1 },
+      { id: 'ls1', ex: 'rdl', role: 'main', reps: [5, 6], pri: 1 },
       { id: 'ls2', ex: 'leg_press', role: 'main', reps: [6, 8], pri: 1 },
-      { id: 'ls3', ex: 'ham_curl', role: 'acc', reps: [6, 10], pri: 2 },
+      { id: 'ls3', ex: 'seated_ham_curl', role: 'acc', reps: [8, 12], n: 3, pri: 1 },
+      { id: 'ls5', ex: 'calf_raise', role: 'acc', reps: [8, 12], n: 3, pri: 2 },
       { id: 'ls4', ex: 'copenhagen', role: 'hold', reps: [20, 30], pri: 3 },
+    ],
+  },
+  /* v2.6 — “Pick today’s workout” sessions + deload-week Push/Pull (Oct 28/29). Same standards as above. */
+  pushP: {
+    title: 'Push', icon: 'P', color: 'lift', focus: 'Bench top set · Incline · Shoulders · Triceps', est: 55,
+    slots: [
+      { id: 'pu1', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
+      { id: 'pu2', ex: 'incline_db', role: 'acc', reps: [8, 12], n: 3, pri: 1 },
+      { id: 'pu3', ex: 'seated_db_press', role: 'main', reps: [6, 8], pri: 1 },
+      { id: 'pu4', ex: 'dips', role: 'acc', reps: [6, 10], n: 2, pri: 2 },
+      { id: 'pu5', ex: 'cable_lateral', role: 'acc', reps: [12, 15], n: 3, ss: 'Superset', pri: 2 },
+      { id: 'pu6', ex: 'oh_triceps', role: 'acc', reps: [10, 15], n: 2, ss: 'Superset', pri: 2 },
+    ],
+  },
+  pullP: {
+    title: 'Pull', icon: 'P', color: 'lift', focus: 'Pull-ups · Rows · Pulldown · Rear delts · Biceps', est: 55,
+    slots: [
+      { id: 'pl2', ex: 'weighted_pullup', role: 'main', reps: [4, 6], pri: 1 },
+      { id: 'pl1', ex: 'cs_row', role: 'main', reps: [6, 8], pri: 1 },
+      { id: 'pl7', ex: 'lat_pulldown', role: 'acc', reps: [8, 12], n: 2, pri: 2 },
+      { id: 'pl3', ex: 'face_pull', role: 'acc', reps: [12, 15], n: 3, ss: 'Superset', pri: 2 },
+      { id: 'pl5', ex: 'incline_curl', role: 'acc', reps: [8, 12], n: 3, ss: 'Superset', pri: 2 },
+      { id: 'pl4', ex: 'rear_delt_fly', role: 'acc', reps: [12, 15], n: 2, ss: 'Superset B', pri: 3 },
+      { id: 'pl6', ex: 'bayesian_curl', role: 'acc', reps: [10, 12], n: 2, ss: 'Superset B', pri: 3 },
+    ],
+  },
+  fullP: {
+    title: 'Full Body', icon: 'F', color: 'lift', focus: 'Bench · Trap-bar RDL · Row · Leg press · Delts', est: 55,
+    slots: [
+      { id: 'fb1', ex: 'flat_bench', role: 'bench', reps: [5, 6], pri: 1 },
+      { id: 'fb2', ex: 'trap_rdl', role: 'main', reps: [5, 6], pri: 1 },
+      { id: 'fb3', ex: 'cs_row', role: 'acc', reps: [8, 12], n: 3, pri: 1 },
+      { id: 'fb4', ex: 'leg_press', role: 'acc', reps: [8, 10], n: 2, pri: 2 },
+      { id: 'fb5', ex: 'cable_lateral', role: 'acc', reps: [12, 15], n: 2, ss: 'Superset', pri: 2 },
+      { id: 'fb6', ex: 'oh_triceps', role: 'acc', reps: [10, 15], n: 2, ss: 'Superset', pri: 3 },
     ],
   },
 });
@@ -208,8 +264,13 @@ const KNEE_RULES = [
 const SLIP_RULE = 'If things slip: protect Upper A (heavy bench) + one more lift — at least 2 lifts every week — and the 3 protein meals. Hockey or a ride can replace any other day.';
 
 const WHY = {
-  UA: 'Heavy bench goes first while you’re fresh — getting stronger is now an explicit goal. One heavy top set (Base ~5 reps, Build 3–4, Sharpen 2–3 plus a heavy single) is the biggest strength signal per minute; 2–3 back-offs at −10% add quality practice without junk volume. Rows, pull-ups and face pulls build the upper-back shelf you press from and keep shoulders healthy; JM press trains lockout. On a cut, expect modest bench gains — protein ≥190 g protects them.',
-  UB: 'Second bench day of the week: paused bench at RPE 7–8 grooves a tight, consistent bottom position and adds technique volume without beating you up before Monday’s heavy day. Back and delt work balances the pressing, and the easy spin adds calorie burn without leg fatigue.',
+  PUSHD: 'Deload-week push: bench top set at about RPE 7 (leave 3 in the tank), then incline DB, shoulder press, dips or push-ups, laterals and triceps. Moved here because Mon/Tue were hard MTB days — upper body only until Friday.',
+  PULLD: 'Deload-week pull: rows, pull-ups or pulldowns, face pulls, rear delts and curls at about RPE 7. Keeps the legs fresh after back-to-back MTB days.',
+  LOWD: 'Earliest lower day this week (two hard rides Mon/Tue). Deload: light and crisp, nothing grinding — hockey is Sunday.',
+  PICK: 'You picked this session — it replaces the plan for the day and counts like any planned lift.',
+  MIN: 'Minimum day: something beats nothing. 15–20 minutes keeps the streak alive without digging a recovery hole.',
+  UA: 'Heavy bench goes first while you’re fresh — getting stronger is now an explicit goal. One heavy top set of 4–6 (Base 5–6, Build 4–5, Sharpen 4–5 plus a heavy single) is the biggest strength signal per minute; 2–3 back-offs of 6–8 at −10% add hypertrophy volume without junk sets. Every working set is RPE 8–9 (1–2 reps left). Pull-ups, rows and incline DB press (deep stretch) hit chest and back twice a week; overhead triceps and cable laterals train arms and delts in the lengthened position, which grows them fastest. On a cut, expect modest bench gains — protein ≥190 g protects them.',
+  UB: 'Second bench day of the week: paused bench at RPE 8 grooves a tight, consistent bottom position and adds technique volume without beating you up before Monday’s heavy day. Back and delt work balances the pressing, and the easy spin adds calorie burn without leg fatigue.',
   LOW: 'Jumps come first because power needs fresh, fast muscle fibers. Then hinge and knee-friendly leg work in low reps with hard effort — strength without high-rep patellar stress.',
   RUN: 'Easy, conversational running builds the aerobic base (more mitochondria and capillaries) with low injury risk. Core work stabilizes hips and knees for hockey.',
   STRIDES: 'Strides teach fast, relaxed mechanics with almost no fatigue — the one new impact stressor this week.',
@@ -218,7 +279,7 @@ const WHY = {
   SWIM: 'Short repeats with rest let a beginner keep good form, so you practice good technique instead of struggle. Aerobic work with zero knee impact.',
   LONG: 'Long zone-2 work is the best tool for aerobic endurance and fat burning. Cycling is knee-friendly and keeps legs fresh for Sunday hockey.',
   UB2: 'Shoulders and arms are what make the upper body look bigger. Moderate loads, 8–15 reps taken close to failure build size with little joint stress — and nothing here competes with Monday’s heavy bench.',
-  UC: 'Second bench day: paused bench 3×5–6 at RPE 7–8 adds quality bench volume (the fastest path to 225 for reps) and owns the bottom position. Back work keeps shoulders healthy and builds the V-taper.',
+  UC: 'Second bench day: paused bench 3×5–6 at RPE 8 adds quality bench volume (the fastest path to 225 for reps) and owns the bottom position. Back work keeps shoulders healthy and builds the V-taper.',
   LOW2: 'Short and strength-focused on purpose: hockey and MTB already load your legs. A heavy hinge and a knee-friendly press for low reps keep leg strength without adding fatigue or patellar stress.',
   MTB: 'Mountain biking is your knee-friendly engine work. Keep most of it zone 2 (RPE 4–6) so Wednesday’s lower day stays on — a very hard ride counts toward the 48-h rule.',
   SAT: 'A short 25–30′ run (or MTB) keeps running fitness for a future triathlon without beating up the knees before Sunday hockey.',
@@ -391,24 +452,25 @@ function buildSets(slot, mod, P, k) {
     const bo = mod === 'normal' ? (endu ? 2 : ph.bo) : 1;
     for (let i = 0; i < bo; i++) sets.push({ tag: 'Back-off', rpeT: mod === 'deload' ? '6–7' : '7–8', pct: 0.9 });
   } else if (slot.role === 'tech') {
-    const n = mod === 'normal' ? 3 : 2;
-    for (let i = 0; i < n; i++) sets.push({ tag: 'Set', rpeT: mod === 'deload' ? '6–7' : '7–8' });
-  } else if (slot.role === 'main') {
-    sets.push({ tag: 'Top', rpeT: mod === 'deload' ? '7' : '9' });
+    const n = mod === 'normal' ? 3 : 2; // v2.6: working sets RPE 8 (1–2 RIR)
+    for (let i = 0; i < n; i++) sets.push({ tag: 'Set', rpeT: mod === 'deload' ? '7' : '8' });
+  } else if (slot.role === 'main') { // v2.6: top set + 2 back-offs (6–10 reps) at −10%
+    sets.push({ tag: 'Top', rpeT: mod === 'deload' ? '7' : '8–9' });
     const bo = (mod === 'normal' && !endu ? 2 : 1) + vol;
-    for (let i = 0; i < bo; i++) sets.push({ tag: 'Back-off', rpeT: mod === 'deload' ? '6–7' : '8–9', pct: 0.9 });
+    for (let i = 0; i < bo; i++) sets.push({ tag: 'Back-off', rpeT: mod === 'deload' ? '7' : '8–9', pct: 0.9 });
   } else if (slot.role === 'power') {
     const n = mod === 'normal' ? (slot.sets || 3) : 2;
     for (let i = 0; i < n; i++) sets.push({ tag: 'Set', rpeT: 'Max intent' });
   } else {
-    const n = (mod === 'normal' && !endu ? 2 : 1) + vol;
-    for (let i = 0; i < n; i++) sets.push({ tag: 'Hard', rpeT: mod === 'deload' ? '8' : '9–10' });
+    const base = slot.n || 2; // v2.6: 2–3 hard sets of 8–15 near failure (RPE 8–9); deload drops a set at RPE 7
+    const n = (mod === 'normal' && !endu ? base : Math.max(1, base - 1)) + vol;
+    for (let i = 0; i < n; i++) sets.push({ tag: 'Hard', rpeT: mod === 'deload' ? '7' : '8–9' });
   }
   return sets;
 }
 
 /* profile-driven automatic exercise choices */
-const BASIC_GYM_SWAP = { incline_bench: 'incline_db', cs_row: 'db_row', cable_fly: 'db_fly', lat_pulldown: 'neutral_pullup', cable_row: 'db_row', rear_delt_fly: 'db_rear_fly', pushdown: 'oh_db_ext', oh_triceps: 'oh_db_ext', ez_curl: 'hammer_curl', leg_press: 'goblet_squat', ham_curl: 'ball_curl', calf_raise: 'db_calf', machine_press: 'seated_db_press', lateral_raise: 'lateral_raise', rdl: 'db_rdl' };
+const BASIC_GYM_SWAP = { cable_lateral: 'lateral_raise', bayesian_curl: 'incline_curl', seated_ham_curl: 'ball_curl', incline_bench: 'incline_db', cs_row: 'db_row', cable_fly: 'db_fly', lat_pulldown: 'neutral_pullup', cable_row: 'db_row', rear_delt_fly: 'db_rear_fly', pushdown: 'oh_db_ext', oh_triceps: 'oh_db_ext', ez_curl: 'hammer_curl', leg_press: 'goblet_squat', ham_curl: 'ball_curl', calf_raise: 'db_calf', machine_press: 'seated_db_press', lateral_raise: 'lateral_raise', rdl: 'db_rdl' };
 const FLARE_SWAP = { broad_jump: 'medball_throw', leg_press: 'hip_thrust', split_squat: 'step_up', calf_raise: 'seated_calf', back_squat: 'hip_thrust', goblet_squat: 'single_leg_hip_thrust' };
 function profileExercise(slot, P) {
   let id = slot.ex;
@@ -425,6 +487,8 @@ function slotsFor(tpl, P) {
 function scaleMin(m, P) { if (!m) return m; const f = P.style === 'strength' ? 0.75 : P.style === 'endurance' ? 1.15 : 1; return Math.round(m * f / 5) * 5; }
 
 /* ---------- the base day generator (profile → sessions) ---------- */
+/* v2.6: deload week (Oct 26 – Nov 1) after hard MTB Mon + Tue — Wed push, Thu pull, earliest lower day Fri. Sat/Sun and Nov 2+ unchanged. */
+const DELOAD_W5 = { '2026-10-28': ['pushP', 'PUSH', 'PUSHD'], '2026-10-29': ['pullP', 'PULL', 'PULLD'], '2026-10-30': ['lowerS', 'LOW', 'LOWD'] };
 function basePlan(k, P) {
   P = P || DEFAULT_PROFILE;
   if (!inPlan(k)) return null;
@@ -454,9 +518,10 @@ function basePlan(k, P) {
     if (d === 2) sessions.push(cardio({ mode: 'bike', title: 'Easy Spin 20′ + Mobility', min: 20, why: 'SPIN', steps: [['20 min', 'Easy spin — fresh legs for tests'], ['Mobility', '10 min routine']], checklist: MOBILITY }, 'SPIN'));
     if (d === 3) sessions.push(testS('dec31', true));
   } else {
-    const code = tpl[d];
-    if (np) { // v2.5 plan
-      if (code === 'UA') sessions.push(lift('upperA', 'UA'));
+    const code = tpl[d], w5 = DELOAD_W5[k];
+    if (w5) { sessions.push(lift(w5[0], w5[1], w5[2])); } // v2.6: deload week reshuffle after the two MTB days
+    else if (np) { // v2.5 plan
+      if (code === 'UA') sessions.push(lift('upperA2', 'UA'));
       if (code === 'MTB') sessions.push(cardio(mtbTue(wk), 'MTB'));
       if (code === 'LOW') sessions.push(lift('lowerS', 'LOW', 'LOW2'));
       if (code === 'UB') sessions.push(lift('upperB2', 'UB', 'UB2'));
@@ -480,7 +545,45 @@ function basePlan(k, P) {
   return { k, wk, meta, block: blockFor(k), sessions: out, dow: d };
 }
 const isRunS = s => s.cardio && s.cardio.mode === 'run';
-const isLowerS = s => s.kind === 'lift' && (s.tpl === 'lower' || s.tpl === 'lowerS');
+const isLowerS = s => s.kind === 'lift' && (s.tpl === 'lower' || s.tpl === 'lowerS' || s.tpl === 'fullP'); // v2.6: full body has legs too (48-h rule)
 const isHockeyS = s => s.cardio && s.cardio.mode === 'hockey';
 const isImpactS = s => isRunS(s) || isLowerS(s) || isHockeyS(s);
-const isUpperS = s => s.kind === 'lift' && ['upperA', 'upperB', 'upperB2', 'upperC'].includes(s.tpl);
+const isUpperS = s => s.kind === 'lift' && ['upperA', 'upperA2', 'upperB', 'upperB2', 'upperC', 'pushP', 'pullP'].includes(s.tpl);
+
+/* v2.6 hypertrophy audit helpers: muscles per exercise (1 = direct hard set, 0.5 = indirect), rest guidance, weekly sets */
+const MUSCLES = {
+  flat_bench: { chest: 1, triceps: 0.5 }, paused_bench: { chest: 1, triceps: 0.5 }, incline_db: { chest: 1, triceps: 0.5 }, incline_bench: { chest: 1, triceps: 0.5 },
+  flat_db_press: { chest: 1, triceps: 0.5 }, machine_incline: { chest: 1, triceps: 0.5 }, machine_chest: { chest: 1, triceps: 0.5 }, close_grip_bench: { triceps: 1, chest: 0.5 },
+  dips: { chest: 1, triceps: 0.5 }, pushup: { chest: 1, triceps: 0.5 }, cable_fly: { chest: 1 }, pec_deck: { chest: 1 }, db_fly: { chest: 1 },
+  seated_db_press: { 'side delts': 0.5, triceps: 0.5 }, machine_press: { 'side delts': 0.5, triceps: 0.5 }, landmine_press: { 'side delts': 0.5, triceps: 0.5 },
+  weighted_pullup: { back: 1, biceps: 0.5 }, neutral_pullup: { back: 1, biceps: 0.5 }, lat_pulldown: { back: 1, biceps: 0.5 }, single_pulldown: { back: 1, biceps: 0.5 },
+  cs_row: { back: 1, 'rear delts': 0.5, biceps: 0.5 }, seal_row: { back: 1, 'rear delts': 0.5, biceps: 0.5 }, machine_row: { back: 1, 'rear delts': 0.5, biceps: 0.5 },
+  cable_row: { back: 1, 'rear delts': 0.5, biceps: 0.5 }, db_row: { back: 1, 'rear delts': 0.5, biceps: 0.5 },
+  lateral_raise: { 'side delts': 1 }, cable_lateral: { 'side delts': 1 }, machine_lateral: { 'side delts': 1 },
+  rear_delt_fly: { 'rear delts': 1 }, db_rear_fly: { 'rear delts': 1 }, face_pull: { 'rear delts': 1 }, band_pull: { 'rear delts': 1 },
+  db_curl: { biceps: 1 }, ez_curl: { biceps: 1 }, cable_curl: { biceps: 1 }, hammer_curl: { biceps: 1 }, incline_curl: { biceps: 1 }, bayesian_curl: { biceps: 1 },
+  oh_triceps: { triceps: 1 }, oh_db_ext: { triceps: 1 }, skull_crusher: { triceps: 1 }, pushdown: { triceps: 1 }, jm_press: { triceps: 1 },
+  rdl: { hams: 1, glutes: 1 }, db_rdl: { hams: 1, glutes: 1 }, trap_rdl: { hams: 0.5, glutes: 1, quads: 0.5 }, kb_swing: { hams: 0.5, glutes: 0.5 },
+  leg_press: { quads: 1, glutes: 0.5 }, box_squat: { quads: 1, glutes: 0.5 }, belt_squat: { quads: 1, glutes: 0.5 }, back_squat: { quads: 1, glutes: 0.5 }, goblet_squat: { quads: 1, glutes: 0.5 },
+  split_squat: { quads: 1, glutes: 0.5 }, step_up: { quads: 1, glutes: 0.5 }, reverse_lunge: { quads: 1, glutes: 0.5 },
+  hip_thrust: { glutes: 1 }, single_leg_hip_thrust: { glutes: 1 }, ham_curl: { hams: 1 }, seated_ham_curl: { hams: 1 }, ball_curl: { hams: 1 },
+  calf_raise: { calves: 1 }, seated_calf: { calves: 1 }, leg_press_calf: { calves: 1 }, db_calf: { calves: 1 },
+};
+const MUSCLE_ORDER = ['chest', 'back', 'side delts', 'rear delts', 'biceps', 'triceps', 'quads', 'hams', 'glutes', 'calves'];
+const COMPOUND_ACC = new Set(['incline_db', 'incline_bench', 'flat_db_press', 'machine_incline', 'machine_chest', 'dips', 'pushup', 'cs_row', 'seal_row', 'machine_row', 'cable_row', 'db_row', 'lat_pulldown', 'single_pulldown', 'neutral_pullup', 'weighted_pullup', 'seated_db_press', 'machine_press', 'leg_press', 'goblet_squat', 'trap_rdl', 'rdl', 'db_rdl', 'hip_thrust', 'step_up', 'split_squat']);
+function restLbl(role, exId) { // v2.6: 2–3 min on compounds, 60–90 s on isolations
+  if (role === 'power') return '2 min'; if (role === 'hold') return '60 s';
+  if (['main', 'bench', 'tech'].includes(role)) return '2–3 min';
+  return COMPOUND_ACC.has(exId) ? '2 min' : '60–90 s';
+}
+const boReps = sl => [Math.max(6, sl.reps[0] + 2), 10]; // main-lift back-offs: 6–10 reps at −10%
+function tplSets(tpl, mod, P, k) { // hard working sets per muscle for one session (warm-ups never counted)
+  const out = {}; for (const sl of slotsFor(tpl, P)) { const id = profileExercise(sl, P), m = MUSCLES[id]; if (!m) continue; const n = buildSets(sl, mod || 'normal', P, k).length; for (const mu in m) out[mu] = (out[mu] || 0) + n * m[mu]; }
+  return out;
+}
+function tplMinutes(tpl, mod, P, k) { // rough session length: 8′ warm-up + work + rest (supersets share rest)
+  let sec = 480; const sl = slotsFor(tpl, P);
+  sl.forEach((x, i) => { const id = profileExercise(x, P), n = buildSets(x, mod || 'normal', P, k).length, comp = ['main', 'bench', 'tech'].includes(x.role), rest = comp ? 165 : COMPOUND_ACC.has(id) ? 120 : 75, paired = x.ss && sl[i + 1] && sl[i + 1].ss === x.ss;
+    sec += n * (45 + (paired ? 20 : rest)); });
+  return Math.round(sec / 60);
+}
