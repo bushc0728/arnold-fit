@@ -1,7 +1,7 @@
 {
   "name": "Arnold Fit",
   "short_name": "Arnold Fit",
-  "description": "Christopher's fat-loss + strength plan — Oct 5 to Dec 31, 2026.",
+  "description": "Arnold Fit — workout planner and logger.",
   "id": "./",
   "start_url": "./index.html",
   "scope": "./",

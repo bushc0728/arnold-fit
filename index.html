@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#09090D">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="Arnold Fit — Christopher's hybrid training, food, habits, daily devotional & motivation — Oct 5 → Dec 31 2026.">
+<meta name="description" content="Arnold Fit — a simple workout planner and logger.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,46 +17,26 @@
 <title>Arnold Fit</title>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="tabgrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="24" y2="24"><stop offset="0" stop-color="#FF7A3D"/><stop offset="1" stop-color="#FF2E63"/></linearGradient></defs></svg>
-<header id="topbar" aria-hidden="true"><div class="tb-in" id="tbTitle"></div></header>
-<main id="view" aria-live="polite"><div class="boot" aria-label="Loading"><div class="oblogo">AF</div></div></main>
-<nav id="tabbar" aria-label="Tabs">
-  <button data-tab="today" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg><span class="lbl">Today</span></button>
-  <button data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17.5h2"/></svg><span class="lbl">Plan</span></button>
-  <button data-tab="progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 19.5h17M6 15l4-4.5 3.5 3L19 7"/><path d="M15 7h4v4"/></svg><span class="lbl">Progress</span></button>
-  <button data-tab="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="lbl">More</span></button>
+<main id="view"></main>
+<div id="dock" class="hidden"></div>
+<nav id="tabs" aria-label="Sections">
+  <button data-a="tab" data-tab="today" class="on" aria-label="Today">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>
+    <span>Today</span>
+  </button>
+  <button data-a="tab" data-tab="plan" aria-label="Plan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+    <span>Plan</span>
+  </button>
+  <button data-a="tab" data-tab="history" aria-label="History">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M7 16l3.5-4 3 2.5L18 8"/><path d="M14 8h4v4"/></svg>
+    <span>History</span>
+  </button>
 </nav>
-<div id="workout" class="overlay hidden"></div>
-<div id="coach" class="overlay coach hidden"></div>
-<div id="devo" class="overlay devo hidden" role="dialog" aria-label="Daily devotional"></div>
-<div id="onboard" class="overlay onboard hidden"></div>
-<div id="sheet-root"></div>
+<div id="log" class="hidden"></div>
+<div id="sheet"></div>
 <div id="toast" role="status"></div>
-<div id="net" role="status" aria-live="polite">Offline · everything still saves on this phone</div>
-<script src="js/data.js"></script>
-<script src="js/verses.js"></script>
-<script src="js/devotionals.js"></script>
-<script src="js/foods.js"></script>
-<script src="js/fooddb.js"></script>
-<script src="js/store.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/ui-core.js"></script>
-<script src="js/devo.js"></script>
-<script src="js/discipline.js"></script>
-<script src="js/view-today.js"></script>
-<script src="js/view-train.js"></script>
-<script src="js/workout.js"></script>
-<script src="js/coach.js"></script>
-<script src="js/view-food.js"></script>
-<script src="js/view-fuel.js"></script>
-<script src="js/view-progress.js"></script>
-<script src="js/view-settings.js"></script>
-<script src="js/onboarding.js"></script>
-<script src="js/v25.js"></script>
-<script src="js/v26.js"></script>
-<script src="js/v27.js"></script>
-<script src="js/v28.js"></script>
-<script src="js/v29.js"></script>
-<script src="js/boot.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
