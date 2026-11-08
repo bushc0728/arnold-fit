@@ -146,12 +146,58 @@
   function freshStore() {
     return { v: 6, created: Date.now(), settings: { name: 'Christopher', units: { w: 'lb' }, haptics: true, sound: true }, workouts: [], fit3: { crunch: {} } };
   }
+  function alcoholHabit(h) {
+    if (!h || typeof h !== 'object') return false;
+    const id = String(h.id || '').toLowerCase();
+    if (id === 'noalc' || id === 'noalcohol' || id === 'alcohol') return true;
+    return /no\s*alcohol/i.test(h.label || '');
+  }
+  function proteinHabit(h) {
+    if (!h || typeof h !== 'object') return false;
+    if (String(h.id || '') === 'protein') return true;
+    return /\bprotein\b/i.test(h.label || '');
+  }
+  function migrateHabits(s) {
+    if (!s.settings || typeof s.settings !== 'object') s.settings = {};
+    const hadArray = Array.isArray(s.settings.habits);
+    const habits = hadArray ? s.settings.habits : [];
+    const hidden = s.v28 && Array.isArray(s.v28.hiddenHabits) ? s.v28.hiddenHabits : [];
+    let protein = null, proteinAt = 0;
+    const next = [];
+    habits.forEach(h => {
+      if (!h || typeof h !== 'object' || alcoholHabit(h)) return;
+      if (proteinHabit(h)) {
+        if (!protein) { protein = Object.assign({}, h); proteinAt = next.length; }
+        return;
+      }
+      next.push(h);
+    });
+    if (!protein) {
+      const hid = hidden.find(proteinHabit);
+      if (hid) {
+        protein = Object.assign({}, hid);
+        delete protein.at;
+        proteinAt = typeof hid.at === 'number' ? Math.min(Math.max(0, hid.at), next.length) : 0;
+      }
+    }
+    const loggedProtein = s.habitLog && typeof s.habitLog === 'object' && Object.keys(s.habitLog).some(k => s.habitLog[k] && s.habitLog[k].protein);
+    if (!protein && loggedProtein) protein = { id: 'protein', ic: '📊' };
+    if (protein) {
+      protein.id = protein.id || 'protein';
+      protein.label = 'Track macros';
+      next.splice(Math.min(proteinAt, next.length), 0, protein);
+    }
+    if (hadArray || protein) s.settings.habits = next;
+    if (Array.isArray(s.settings.nn)) s.settings.nn = s.settings.nn.filter(id => id !== 'noalc' && id !== 'noalcohol' && id !== 'alcohol');
+    return s;
+  }
   function migrateStore(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return freshStore();
     if (!Array.isArray(s.workouts)) s.workouts = [];
     if (!s.settings || typeof s.settings !== 'object') s.settings = {};
     if (!s.fit3 || typeof s.fit3 !== 'object') s.fit3 = {};
     if (!s.fit3.crunch || typeof s.fit3.crunch !== 'object') s.fit3.crunch = {};
+    migrateHabits(s);
     if (!s.v || s.v < 6) s.v = 6;
     return s;
   }

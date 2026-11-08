@@ -257,8 +257,17 @@
     let h = '<header class="top"><div><p class="kicker">' + esc(AF.fmtLong(k)) + '</p><h1>' + esc(hello() + ', ' + firstName()) + '</h1></div></header>';
     if (badStore) h += '<div class="banner">Saved data could not be read. A copy is still on this phone.</div>';
     if (S.active && S.active.date !== k) h += '<button class="banner tap" data-a="resume">' + esc(S.active.title) + ' is still open · Resume</button>';
-    h += recoveryStrip(k) + hero(k) + crunchCard(k);
+    h += recoveryStrip(k) + hero(k) + crunchCard(k) + habitsCard(k);
     return h;
+  }
+  function habitsCard(k) {
+    const hs = (S.settings && S.settings.habits) || [];
+    if (!hs.length) return '';
+    const log = (S.habitLog && S.habitLog[k]) || {};
+    const done = hs.filter(h => log[h.id]).length;
+    return '<section class="card" id="habits"><div class="row"><h3>Habits</h3><b>' + done + '/' + hs.length + '</b></div><div class="habitlist">'
+      + hs.map(h => '<button class="habit ' + (log[h.id] ? 'on' : '') + '" data-a="habit" data-id="' + esc(h.id) + '" aria-pressed="' + (log[h.id] ? 'true' : 'false') + '"><span class="chk ' + (log[h.id] ? 'on' : '') + '" aria-hidden="true">' + CHECK + '</span><span class="grow">' + (h.ic ? esc(h.ic) + ' ' : '') + esc(h.label) + '</span></button>').join('')
+      + '</div></section>';
   }
   function recoveryStrip(k) {
     const rows = AF.recoveryMap(liveList(), k, PE);
@@ -647,6 +656,19 @@
     },
     restAdj(el) { if (!rest) return; rest.end += (+el.dataset.v) * 1000; rest.fired = false; paintRest(); },
     restSkip() { rest = null; paintRest(); },
+    habit(el) {
+      const id = el.dataset.id;
+      if (!id) return;
+      const k = AF.today();
+      if (!S.habitLog || typeof S.habitLog !== 'object') S.habitLog = {};
+      const day = S.habitLog[k] = S.habitLog[k] || {};
+      if (day[id]) delete day[id]; else day[id] = true;
+      saveStore();
+      haptic(12);
+      render();
+      const card = document.getElementById('habits');
+      if (card) card.scrollIntoView({ block: 'nearest' });
+    },
     crunchVisit() {
       const k = AF.today();
       S.fit3.crunch[k] = true;

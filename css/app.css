@@ -72,6 +72,10 @@ h3 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
 .crunch b { font-size: 18px; }
 .crunch p { margin: 0; }
 .inline { color: white; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 8px 4px; }
+.habitlist { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.habit { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 8px; border-radius: 16px; background: #101018; text-align: left; font-size: 17px; font-weight: 750; }
+.habit .chk { width: 44px; height: 44px; border-radius: 14px; flex: none; }
+.habit.on { background: rgba(61, 220, 151, .12); }
 .pips { display: flex; gap: 8px; margin: 12px 0 8px; }
 .pips i { width: 18px; height: 18px; border-radius: 50%; background: #2a2a36; display: block; }
 .pips i.on { background: var(--grad); box-shadow: 0 0 0 4px rgba(255, 70, 90, .15); }

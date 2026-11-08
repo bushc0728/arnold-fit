@@ -1,5 +1,5 @@
 /* Arnold Fit service worker — offline shell. Bump CACHE when shipping a new build. */
-const CACHE = 'arnoldfit-v3.0.0';
+const CACHE = 'arnoldfit-v3.1.0';
 const ASSETS = [
   './',
   './index.html',

@@ -162,4 +162,43 @@ const alts = AF.alternatives('db_rdl', { code: 'LA' }, fresh);
 assert.ok(alts.indexOf('hip_hinge') >= 0);
 assert.ok(!alts.some(id => AF.KNEE_BAN[id]), 'lower-day swaps skip squats, deadlifts, and lunges');
 
+const habitsIn = {
+  v: 5,
+  settings: {
+    habits: [
+      { id: 'protein', label: '180 g protein', ic: '🥩' },
+      { id: 'water', label: 'Water', ic: '💧' },
+      { id: 'noalc', label: 'No alcohol', ic: '🚫' },
+      { id: 'sleep', label: '8h sleep', ic: '😴' },
+    ],
+    nn: ['protein', 'noalc', 'water'],
+  },
+  habitLog: { '2026-11-01': { protein: true, noalc: true, water: true }, '2026-11-02': { noalc: true } },
+  workouts: [],
+  food: { log: { keep: true } },
+};
+const habitsOut = AF.migrateStore(JSON.parse(JSON.stringify(habitsIn)));
+assert.deepStrictEqual(habitsOut.settings.habits.map(h => h.label), ['Track macros', 'Water', '8h sleep']);
+assert.strictEqual(habitsOut.settings.habits[0].id, 'protein');
+assert.strictEqual(habitsOut.settings.habits[0].ic, '🥩');
+assert.strictEqual(habitsOut.habitLog['2026-11-01'].protein, true, 'protein checks stay on the same id');
+assert.strictEqual(habitsOut.habitLog['2026-11-01'].noalc, true, 'alcohol history is kept, just not shown');
+assert.strictEqual(habitsOut.habitLog['2026-11-02'].noalc, true);
+assert.ok(!habitsOut.settings.nn.includes('noalc'));
+assert.strictEqual(habitsOut.food.log.keep, true);
+const againHabits = AF.migrateStore(JSON.parse(JSON.stringify(habitsOut)));
+assert.deepStrictEqual(againHabits.settings.habits.map(h => h.label), ['Track macros', 'Water', '8h sleep']);
+
+const hidden = AF.migrateStore({
+  v: 5,
+  settings: { habits: [{ id: 'water', label: 'Water' }, { id: 'noalc', label: 'No alcohol' }] },
+  v28: { hiddenHabits: [{ id: 'protein', label: 'Protein 190g', ic: '🥩', at: 0 }] },
+  habitLog: { '2026-10-28': { protein: true } },
+  workouts: [],
+});
+assert.strictEqual(hidden.settings.habits[0].label, 'Track macros');
+assert.strictEqual(hidden.settings.habits[0].id, 'protein');
+assert.ok(!hidden.settings.habits.some(h => /alcohol/i.test(h.label)));
+assert.strictEqual(hidden.habitLog['2026-10-28'].protein, true);
+
 console.log('engine tests passed');
