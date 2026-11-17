@@ -8,7 +8,7 @@
   'use strict';
   const STORE_KEY = 'arnoldfit.v1';
   const PLAN_KEY = 'arnoldfit.plan.v1';
-  const CRUNCH_GOAL = 5;
+  const CRUNCH_GOAL = 4;
   const RECOVERY_DAYS = 4;
   const RECOVERY_SKIP = { Cardio: 1, Mobility: 1, Other: 1, Power: 1 };
   const KNEE_BAN = { back_squat: 1, box_squat: 1, goblet_squat: 1, belt_squat: 1, split_squat: 1, reverse_lunge: 1, lunge: 1, rdl: 1, deadlift: 1, trap_rdl: 1 };
@@ -26,7 +26,7 @@
     machine_row: { n: 'Machine Row', m: 'Back', eq: 'Machine', rest: 120, inc: 5, alts: ['cs_row', 'cable_row'] },
     db_row: { n: 'One-Arm DB Row', m: 'Back', eq: 'Dumbbells', rest: 120, inc: 5, alts: ['cs_row', 'cable_row'] },
     seal_row: { n: 'Seal Row', m: 'Back', eq: 'Barbell', rest: 120, inc: 5, alts: ['cs_row'] },
-    lat_pulldown: { n: 'Lat Pulldown', m: 'Back', eq: 'Cable', rest: 120, inc: 5, cue: 'Chest up. Bar to the upper chest.', alts: ['pullup', 'neutral_pullup'] },
+    lat_pulldown: { n: 'Lat Pulldown', m: 'Back', eq: 'Cable', rest: 120, inc: 5, cue: 'Chest up. Bar to the upper chest. Swap for an assisted pull-up if you want.', alts: ['assisted_pullup', 'pullup', 'neutral_pullup'] },
     pullup: { n: 'Pull-up or Assisted Pull-up', m: 'Back', eq: 'Bar', rest: 120, inc: 5, bw: 1, cue: '0 is bodyweight. Full hang, then chin over the bar.', alts: ['lat_pulldown', 'neutral_pullup', 'assisted_pullup'] },
     neutral_pullup: { n: 'Neutral-Grip Pull-up', m: 'Back', eq: 'Bar', rest: 120, inc: 5, bw: 1, alts: ['pullup', 'lat_pulldown'] },
     assisted_pullup: { n: 'Assisted Pull-up', m: 'Back', eq: 'Machine', rest: 120, inc: 5, cue: 'Log the assist if you want. Less assist is the win.', alts: ['pullup', 'lat_pulldown'] },
@@ -39,13 +39,16 @@
     rear_delt_fly: { n: 'Rear Delt Fly', m: 'Rear delts', eq: 'Machine', rest: 60, inc: 2.5, small: 1, cue: 'Arms wide. Lead with the pinkies.', alts: ['face_pull', 'db_rear_fly'] },
     face_pull: { n: 'Face Pull', m: 'Rear delts', eq: 'Cable', rest: 60, inc: 2.5, small: 1, alts: ['rear_delt_fly', 'db_rear_fly'] },
     db_rear_fly: { n: 'DB Rear Delt Fly', m: 'Rear delts', eq: 'Dumbbells', rest: 60, inc: 2.5, small: 1, alts: ['rear_delt_fly', 'face_pull'] },
-    db_curl: { n: 'Curl', m: 'Biceps', eq: 'Dumbbells', rest: 75, inc: 2.5, small: 1, cue: 'Supinate at the top. Lower slow.', alts: ['hammer_curl', 'ez_curl', 'cable_curl', 'incline_curl'] },
+    db_curl: { n: 'DB Curl', m: 'Biceps', eq: 'Dumbbells', rest: 75, inc: 2.5, small: 1, cue: 'Supinate at the top. Lower slow.', alts: ['hammer_curl', 'ez_curl', 'cable_curl', 'incline_curl'] },
     hammer_curl: { n: 'Hammer Curl', m: 'Biceps', eq: 'Dumbbells', rest: 75, inc: 2.5, small: 1, cue: 'Neutral grip. No swing.', alts: ['db_curl', 'cable_curl'] },
-    ez_curl: { n: 'EZ-Bar Curl', m: 'Biceps', eq: 'Barbell', rest: 75, inc: 5, alts: ['db_curl', 'cable_curl'] },
+    ez_curl: { n: 'EZ-Bar Curl', m: 'Biceps', eq: 'Barbell', rest: 75, inc: 5, alts: ['db_curl', 'cable_curl', 'incline_curl'] },
     cable_curl: { n: 'Cable Curl', m: 'Biceps', eq: 'Cable', rest: 75, inc: 2.5, small: 1, alts: ['db_curl', 'hammer_curl'] },
-    incline_curl: { n: 'Incline Curl', m: 'Biceps', eq: 'Dumbbells', rest: 75, inc: 2.5, small: 1, alts: ['db_curl', 'hammer_curl'] },
-    pushdown: { n: 'Triceps Pushdown', m: 'Triceps', eq: 'Cable', rest: 75, inc: 2.5, small: 1, cue: 'Elbows pinned. Full lockout.', alts: ['oh_triceps', 'oh_db_ext'] },
-    oh_triceps: { n: 'Overhead Triceps', m: 'Triceps', eq: 'Cable', rest: 75, inc: 2.5, small: 1, cue: 'Stretch behind the head, then lock out.', alts: ['pushdown', 'oh_db_ext'] },
+    incline_curl: { n: 'Incline DB Curl', m: 'Biceps', eq: 'Dumbbells', rest: 75, inc: 2.5, small: 1, alts: ['db_curl', 'hammer_curl', 'ez_curl'] },
+    close_grip_bench: { n: 'Close-Grip Bench', m: 'Triceps', eq: 'Barbell', rest: 120, inc: 5, cue: 'Hands just inside shoulder width. Elbows tucked.', alts: ['pushdown', 'oh_triceps', 'dips'] },
+    dips: { n: 'Dip Machine', m: 'Triceps', eq: 'Machine', rest: 90, inc: 5, alts: ['close_grip_bench', 'pushdown'] },
+    wrist_curl: { n: 'Wrist Curl', m: 'Forearms', eq: 'Barbell', rest: 60, inc: 2.5, small: 1, cue: 'Forearms on your thighs. Curl the wrists only.', alts: [] },
+    pushdown: { n: 'Triceps Pushdown', m: 'Triceps', eq: 'Cable', rest: 75, inc: 2.5, small: 1, cue: 'Elbows pinned. Full lockout.', alts: ['oh_triceps', 'oh_db_ext', 'close_grip_bench'] },
+    oh_triceps: { n: 'Overhead Cable Triceps', m: 'Triceps', eq: 'Cable', rest: 75, inc: 2.5, small: 1, cue: 'Stretch behind the head, then lock out.', alts: ['pushdown', 'oh_db_ext', 'close_grip_bench'] },
     oh_db_ext: { n: 'Overhead DB Triceps', m: 'Triceps', eq: 'Dumbbell', rest: 75, inc: 2.5, small: 1, alts: ['oh_triceps', 'pushdown'] },
     leg_press: { n: 'Leg Press', m: 'Quads', eq: 'Machine', rest: 150, inc: 5, cue: 'Comfortable range. Stop before the knee cares.', alts: ['leg_ext'] },
     leg_ext: { n: 'Leg Extension', m: 'Quads', eq: 'Machine', rest: 75, inc: 2.5, small: 1, cue: 'Light. Stop if the knee complains.', alts: ['leg_press'] },
@@ -111,27 +114,25 @@
   function ex(id, sets, lo, hi, mode) { return { id: id, sets: sets, lo: lo, hi: hi, w: null, mode: mode || 'sets' }; }
   function defaultWeek() {
     return [
-      { kind: 'lift', code: 'UA', title: 'Upper A', place: 'crunch', note: 'Hard sets. Leave 1–2 reps in the tank.', optional: [], items: [
-        ex('flat_bench', 3, 5, 8), ex('cs_row', 3, 6, 10), ex('seated_db_press', 3, 6, 10), ex('lat_pulldown', 3, 8, 12),
-        ex('lateral_raise', 2, 10, 15), ex('db_curl', 2, 8, 12), ex('pushdown', 2, 8, 12),
+      { kind: 'lift', code: 'PUSH', title: 'Push', place: 'crunch', note: 'Chest and shoulders. Leave 1–2 reps in the tank.', optional: [], items: [
+        ex('flat_bench', 3, 5, 8), ex('incline_db', 3, 8, 10), ex('seated_db_press', 2, 8, 10),
+        ex('pec_deck', 2, 10, 15), ex('lateral_raise', 3, 12, 15), ex('pushdown', 2, 10, 12),
       ] },
-      { kind: 'lift', code: 'LA', title: 'Lower A', place: 'crunch', note: 'Knee-friendly. Comfortable range. No squats, deadlifts, or lunges.', optional: [], items: [
-        ex('leg_press', 3, 8, 12), ex('db_rdl', 3, 6, 10), ex('ham_curl', 3, 8, 12), ex('hip_thrust', 3, 6, 10),
-        ex('calf_raise', 2, 10, 15), ex('abs', 2, 8, 15),
+      { kind: 'lift', code: 'PULL', title: 'Pull', place: 'crunch', note: 'Back and biceps. Pulldown swaps to an assisted pull-up.', optional: [], items: [
+        ex('lat_pulldown', 3, 6, 10), ex('cs_row', 3, 8, 10), ex('cable_row', 2, 10, 12),
+        ex('rear_delt_fly', 2, 12, 15), ex('face_pull', 2, 12, 15), ex('db_curl', 2, 10, 12),
       ] },
-      { kind: 'recovery', code: 'REC', title: 'Easy recovery', place: 'crunch', note: 'Keep it easy. Arms only if you want them.', items: [
-        ex('incline_walk', 1, 20, 30, 'min'), ex('mobility', 1, 10, 10, 'check'), ex('abs', 2, 8, 15),
-      ], optional: [ex('db_curl', 2, 8, 12), ex('pushdown', 2, 8, 12)] },
-      { kind: 'lift', code: 'UB', title: 'Upper B', place: 'crunch', note: 'Hard sets. Leave 1–2 reps in the tank.', optional: [], items: [
-        ex('incline_db', 3, 6, 10), ex('pullup', 3, 5, 8), ex('cable_row', 3, 8, 12), ex('pec_deck', 2, 10, 15),
-        ex('rear_delt_fly', 2, 12, 15), ex('lateral_raise', 2, 10, 15), ex('hammer_curl', 2, 8, 12), ex('oh_triceps', 2, 8, 12),
+      { kind: 'rest', code: 'REST', title: 'Rest', place: null, note: 'Off. Walk if you feel like it.', items: [], optional: [] },
+      { kind: 'lift', code: 'LEGS', title: 'Legs', place: 'crunch', note: 'Knee-friendly. Comfortable range. No squats, deadlifts, or lunges.', optional: [], items: [
+        ex('leg_press', 3, 8, 12), ex('db_rdl', 3, 8, 10), ex('ham_curl', 3, 10, 12), ex('hip_thrust', 3, 8, 12),
+        ex('leg_ext', 2, 12, 15), ex('calf_raise', 3, 10, 15), ex('abs', 2, 8, 15),
       ] },
-      { kind: 'lift', code: 'LB', title: 'Lower B', place: 'crunch', note: 'Shorter day. Same effort, fewer sets.', optional: [], items: [
-        ex('hip_thrust', 2, 6, 10), ex('leg_ext', 2, 10, 15), ex('seated_ham_curl', 2, 8, 12), ex('back_ext', 2, 8, 12),
-        ex('calf_raise', 2, 10, 15), ex('abs', 2, 8, 15),
+      { kind: 'lift', code: 'ARMS', title: 'Arms', place: 'crunch', note: 'Biceps, triceps, and a little side delt.', optional: [], items: [
+        ex('ez_curl', 3, 8, 12), ex('close_grip_bench', 3, 6, 10), ex('incline_curl', 2, 10, 12),
+        ex('oh_triceps', 3, 10, 12), ex('hammer_curl', 2, 10, 12), ex('lateral_raise', 2, 15, 15),
       ] },
-      { kind: 'rest', code: 'REST', title: 'Rest', place: null, note: 'Nothing to lift. Walk if you feel like it.', items: [], optional: [] },
-      { kind: 'hockey', code: 'HK', title: 'Hockey', place: 'off', note: 'Skate. Log it when you are off the ice.', items: [], optional: [] },
+      { kind: 'rest', code: 'OFF', title: 'Rest', place: null, note: 'Off.', items: [], optional: [] },
+      { kind: 'active', code: 'ACT', title: 'Active', place: 'off', note: 'Hockey, mountain bike, run, or something else.', items: [], optional: [] },
     ];
   }
 
@@ -208,10 +209,14 @@
     if (!p.customEx || typeof p.customEx !== 'object') p.customEx = {};
     const days = p.fit && Array.isArray(p.fit.template) ? p.fit.template : null;
     const ok = !!(days && days.length === 7 && days.every(d => d && typeof d === 'object' && Array.isArray(d.items)));
-    if (!ok) p.fit = { v: 1, template: defaultWeek(), weeks: {} };
-    else {
+    if (!ok) p.fit = { v: 2, template: defaultWeek(), weeks: {} };
+    else if ((p.fit.v || 1) < 2) {
+      p.fit.previous = { v: p.fit.v || 1, template: p.fit.template, weeks: p.fit.weeks || {} };
+      p.fit.template = defaultWeek();
+      p.fit.weeks = {};
+      p.fit.v = 2;
+    } else {
       if (!p.fit.weeks || typeof p.fit.weeks !== 'object') p.fit.weeks = {};
-      if (!p.fit.v) p.fit.v = 1;
     }
     if (!p.v) p.v = 1;
     return p;
@@ -241,11 +246,16 @@
       }
     }
     const hadFit = !!(plan && plan.fit && Array.isArray(plan.fit.template) && plan.fit.template.length === 7);
+    const priorFitV = plan && plan.fit ? (plan.fit.v || 1) : 0;
     const S = migrateStore(badStore ? null : parsed);
     const PE = migratePlan(badPlan ? null : plan);
-    if (!hadFit && !badPlan) {
-      try { if (praw && !storage.getItem(PLAN_KEY + '.backup-pre-fit')) storage.setItem(PLAN_KEY + '.backup-pre-fit', praw); } catch (e) {}
-      try { storage.setItem(PLAN_KEY, JSON.stringify(PE)); } catch (e) {}
+    const replaced = !badPlan && hadFit && PE.fit && PE.fit.v === 2 && priorFitV < 2;
+    if (!badPlan && (!hadFit || replaced)) {
+      try {
+        if (!hadFit && praw && !storage.getItem(PLAN_KEY + '.backup-pre-fit')) storage.setItem(PLAN_KEY + '.backup-pre-fit', praw);
+        if (replaced && praw && !storage.getItem(PLAN_KEY + '.backup-pre-ppl')) storage.setItem(PLAN_KEY + '.backup-pre-ppl', praw);
+        storage.setItem(PLAN_KEY, JSON.stringify(PE));
+      } catch (e) {}
     }
     return { S: S, PE: PE, badStore: badStore, badPlan: badPlan };
   }
@@ -321,12 +331,12 @@
     const more = Object.keys(LIB).filter(k => k !== id && explicit.indexOf(k) < 0 && LIB[k].m === lib.m && (LIB[k].mode || 'sets') === mode);
     more.sort((a, b) => LIB[a].n.localeCompare(LIB[b].n));
     let list = explicit.concat(more);
-    if (day && (day.code === 'LA' || day.code === 'LB')) list = list.filter(k => !KNEE_BAN[k]);
+    if (day && (day.code === 'LEGS' || day.code === 'LA' || day.code === 'LB')) list = list.filter(k => !KNEE_BAN[k]);
     return list;
   }
   function libraryGroups(day) {
-    const order = ['Chest', 'Back', 'Shoulders', 'Rear delts', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Cardio', 'Mobility'];
-    const lower = day && (day.code === 'LA' || day.code === 'LB');
+    const order = ['Chest', 'Back', 'Shoulders', 'Rear delts', 'Biceps', 'Triceps', 'Forearms', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Cardio', 'Mobility'];
+    const lower = day && (day.code === 'LEGS' || day.code === 'LA' || day.code === 'LB');
     return order.map(m => ({
       m: m,
       ids: Object.keys(LIB).filter(id => LIB[id].m === m && !(lower && KNEE_BAN[id])),
@@ -422,7 +432,7 @@
   function countsAsCrunch(w) {
     if (!w || !w.endedAt) return false;
     if (w.place === 'crunch') return true;
-    if (w.place === 'off' || w.kind === 'hockey' || w.kind === 'rest') return false;
+    if (w.place === 'off' || w.kind === 'hockey' || w.kind === 'active' || w.kind === 'rest') return false;
     if (w.kind === 'recovery' || w.kind === 'lift') return true;
     if (w.kind === 'cardio') return false;
     const t = (w.title || '').toLowerCase();
@@ -477,7 +487,7 @@
     const mode = item.mode || lib.mode || 'sets';
     if (mode === 'check') return 'Tap when done';
     if (mode === 'min') return item.lo + '–' + item.hi + ' min';
-    let s = item.sets + '×' + item.lo + '–' + item.hi;
+    let s = item.lo === item.hi ? item.sets + '×' + item.lo : item.sets + '×' + item.lo + '–' + item.hi;
     if (item.w != null) s += ' · ' + wOut(item.w, unit) + ' ' + unitLabel(unit);
     return s;
   }

@@ -62,7 +62,7 @@ assert.strictEqual(savedPlan.rules[0].id, 'keep-rule', 'saved plan still has rul
 assert.strictEqual(savedPlan.customEx.mine.n, 'My lift');
 
 const again = AF.load(store);
-assert.strictEqual(again.PE.fit.template[0].title, 'Upper A');
+assert.strictEqual(again.PE.fit.template[0].title, 'Push');
 const backupOnce = store.getItem(AF.PLAN_KEY + '.backup-pre-fit');
 AF.load(store);
 assert.strictEqual(store.getItem(AF.PLAN_KEY + '.backup-pre-fit'), backupOnce, 'backup is not overwritten');
@@ -93,24 +93,35 @@ assert.strictEqual(AF.dowMon('2026-11-09'), 0, 'Nov 9 2026 is Monday');
 assert.strictEqual(AF.weekStart('2026-11-08'), '2026-11-02');
 
 const week = AF.defaultWeek();
+assert.strictEqual(AF.CRUNCH_GOAL, 4);
 assert.strictEqual(week[0].items[0].id, 'flat_bench');
 assert.deepStrictEqual([week[0].items[0].sets, week[0].items[0].lo, week[0].items[0].hi], [3, 5, 8]);
-assert.deepStrictEqual(week.map(d => d.code), ['UA', 'LA', 'REC', 'UB', 'LB', 'REST', 'HK']);
-const lowerIds = week[1].items.concat(week[4].items).map(it => it.id).join(' ');
-assert.ok(!/squat|lunge|deadlift|(^| )rdl($| )/.test(lowerIds), 'no squats, deadlifts, or lunges on lower days');
-assert.ok(week[1].items.some(it => it.id === 'db_rdl'));
-assert.ok(week[1].items.some(it => it.id === 'leg_press'));
-assert.strictEqual(week[2].kind, 'recovery');
-assert.strictEqual(week[4].items[0].sets, 2, 'lower B is reduced volume');
+assert.deepStrictEqual(week.map(d => d.code), ['PUSH', 'PULL', 'REST', 'LEGS', 'ARMS', 'OFF', 'ACT']);
+assert.deepStrictEqual(week.map(d => d.title), ['Push', 'Pull', 'Rest', 'Legs', 'Arms', 'Rest', 'Active']);
+const legIds = week[3].items.map(it => it.id).join(' ');
+assert.ok(!/squat|lunge|deadlift/.test(legIds), 'no squats, deadlifts, or lunges');
+assert.ok(legIds.includes('db_rdl') && legIds.includes('leg_press') && legIds.includes('ham_curl') && legIds.includes('abs'));
+assert.strictEqual(week[3].items[2].sets, 3);
+assert.deepStrictEqual([week[3].items[2].lo, week[3].items[2].hi], [10, 12]);
+assert.strictEqual(week[1].items[0].id, 'lat_pulldown');
+assert.ok(AF.LIB.lat_pulldown.alts.indexOf('assisted_pullup') >= 0);
+assert.strictEqual(week[4].items[0].id, 'ez_curl');
+assert.strictEqual(week[4].items[1].id, 'close_grip_bench');
+assert.deepStrictEqual([week[4].items[5].sets, week[4].items[5].lo], [2, 15]);
+assert.strictEqual(week[2].kind, 'rest');
 assert.strictEqual(week[5].kind, 'rest');
-assert.strictEqual(week[6].kind, 'hockey');
-assert.ok(week[0].items.length <= 8 && week[3].items.every(it => it.sets <= 3));
+assert.strictEqual(week[6].kind, 'active');
+assert.strictEqual(week[6].place, 'off');
+['PUSH', 'PULL', 'LEGS', 'ARMS'].forEach(code => assert.strictEqual(week.find(d => d.code === code).place, 'crunch'));
 
 const fresh = AF.migratePlan({});
-assert.strictEqual(AF.dayFor(fresh, '2026-11-09').title, 'Upper A');
-assert.strictEqual(AF.dayFor(fresh, '2026-11-08').kind, 'hockey');
-assert.strictEqual(AF.dayFor(fresh, '2026-11-11').code, 'REC');
-assert.strictEqual(AF.dayFor(fresh, '2026-11-13').code, 'LB');
+assert.strictEqual(fresh.fit.v, 2);
+assert.strictEqual(AF.dayFor(fresh, '2026-11-09').title, 'Push');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-16').title, 'Push');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-08').kind, 'active');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-11').kind, 'rest');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-12').title, 'Legs');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-13').title, 'Arms');
 
 const last = { date: '2026-11-02', end: 2, sets: sets(135, 8, 3) };
 const sug = AF.suggest({ id: 'flat_bench', sets: 3, lo: 5, hi: 8, mode: 'sets' }, last, 'lb', fresh);
@@ -147,10 +158,10 @@ assert.ok(!days.has('2026-11-08'), 'hockey is not a Crunch visit');
 assert.strictEqual(days.size, 2);
 
 AF.swapDays(fresh, '2026-11-09', '2026-11-10', false);
-assert.strictEqual(AF.dayFor(fresh, '2026-11-09').code, 'LA');
-assert.strictEqual(AF.dayFor(fresh, '2026-11-10').code, 'UA');
-assert.strictEqual(fresh.fit.template[0].code, 'UA', 'this-week swap does not change the template');
-assert.strictEqual(AF.dayFor(fresh, '2026-11-16').code, 'UA', 'next Monday still Upper A');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-09').code, 'PULL');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-10').code, 'PUSH');
+assert.strictEqual(fresh.fit.template[0].code, 'PUSH', 'this-week swap does not change the template');
+assert.strictEqual(AF.dayFor(fresh, '2026-11-16').code, 'PUSH', 'next Monday still Push');
 
 const kept = JSON.parse(JSON.stringify(S));
 kept.workouts.push({ id: 'new', date: '2026-11-09', endedAt: 9, title: 'Upper A', kind: 'lift', place: 'crunch', exercises: [] });
@@ -158,7 +169,7 @@ const round = JSON.parse(JSON.stringify(kept));
 assert.strictEqual(round.food.log['2026-11-01'][0].name, 'keep me');
 assert.strictEqual(round.workouts.length, 2);
 
-const alts = AF.alternatives('db_rdl', { code: 'LA' }, fresh);
+const alts = AF.alternatives('db_rdl', { code: 'LEGS' }, fresh);
 assert.ok(alts.indexOf('hip_hinge') >= 0);
 assert.ok(!alts.some(id => AF.KNEE_BAN[id]), 'lower-day swaps skip squats, deadlifts, and lunges');
 
@@ -200,5 +211,50 @@ assert.strictEqual(hidden.settings.habits[0].label, 'Track macros');
 assert.strictEqual(hidden.settings.habits[0].id, 'protein');
 assert.ok(!hidden.settings.habits.some(h => /alcohol/i.test(h.label)));
 assert.strictEqual(hidden.habitLog['2026-10-28'].protein, true);
+
+const oldPlan = {
+  v: 1,
+  rules: [{ id: 'keep-rule', type: 'day' }],
+  customSess: { mine: { title: 'Old session' } },
+  customEx: { mine: { n: 'My lift', m: 'Chest' } },
+  fit: {
+    v: 1,
+    template: [
+      { kind: 'lift', code: 'UA', title: 'Upper A', place: 'crunch', items: [{ id: 'flat_bench', sets: 3, lo: 5, hi: 8 }], optional: [] },
+      { kind: 'lift', code: 'LA', title: 'Lower A', place: 'crunch', items: [{ id: 'leg_press', sets: 3, lo: 8, hi: 12 }], optional: [] },
+      { kind: 'recovery', code: 'REC', title: 'Easy recovery', place: 'crunch', items: [], optional: [] },
+      { kind: 'lift', code: 'UB', title: 'Upper B', place: 'crunch', items: [{ id: 'incline_db', sets: 3, lo: 6, hi: 10 }], optional: [] },
+      { kind: 'lift', code: 'LB', title: 'Lower B', place: 'crunch', items: [{ id: 'hip_thrust', sets: 2, lo: 6, hi: 10 }], optional: [] },
+      { kind: 'rest', code: 'REST', title: 'Rest', place: null, items: [], optional: [] },
+      { kind: 'hockey', code: 'HK', title: 'Hockey', place: 'off', items: [], optional: [] },
+    ],
+    weeks: { '2026-11-09': { '0': { kind: 'lift', code: 'UA', title: 'Custom Monday', place: 'crunch', items: [{ id: 'flat_bench', sets: 4, lo: 5, hi: 8 }], optional: [] } } },
+  },
+};
+const workoutsBefore = [{ id: 'logged', date: '2026-11-02', endedAt: 4, title: 'Upper A', kind: 'lift', exercises: [{ ex: 'flat_bench', sets: [{ w: 135, r: 8, done: true }] }] }];
+const migStore = mem2();
+migStore.setItem(AF.STORE_KEY, JSON.stringify({ v: 6, workouts: workoutsBefore, settings: { name: 'Christopher' }, food: { log: { keep: 1 } } }));
+migStore.setItem(AF.PLAN_KEY, JSON.stringify(oldPlan));
+const migrated = AF.load(migStore);
+assert.strictEqual(migrated.PE.fit.template[0].title, 'Push');
+assert.strictEqual(migrated.PE.fit.v, 2);
+assert.deepStrictEqual(migrated.PE.fit.weeks, {});
+assert.strictEqual(migrated.PE.fit.previous.template[0].title, 'Upper A');
+assert.strictEqual(migrated.PE.fit.previous.weeks['2026-11-09']['0'].title, 'Custom Monday');
+assert.strictEqual(migrated.PE.rules[0].id, 'keep-rule');
+assert.strictEqual(migrated.PE.customSess.mine.title, 'Old session');
+assert.strictEqual(migrated.S.workouts.length, 1);
+assert.strictEqual(migrated.S.workouts[0].id, 'logged');
+assert.strictEqual(migrated.S.food.log.keep, 1);
+const savedPpl = JSON.parse(migStore.getItem(AF.PLAN_KEY));
+assert.strictEqual(savedPpl.fit.template[0].code, 'PUSH');
+assert.ok(migStore.getItem(AF.PLAN_KEY + '.backup-pre-ppl'));
+const pplBackup = JSON.parse(migStore.getItem(AF.PLAN_KEY + '.backup-pre-ppl'));
+assert.strictEqual(pplBackup.fit.template[0].title, 'Upper A');
+assert.strictEqual(JSON.parse(migStore.getItem(AF.STORE_KEY)).workouts[0].exercises[0].sets[0].w, 135);
+AF.load(migStore);
+assert.strictEqual(migStore.keys().filter(k => k.indexOf('.backup-pre-ppl') >= 0).length, 1);
+assert.ok(!AF.countsAsCrunch({ endedAt: 1, kind: 'active', title: 'Hockey', place: 'off' }));
+assert.ok(AF.countsAsCrunch({ endedAt: 1, kind: 'lift', title: 'Push', place: 'crunch' }));
 
 console.log('engine tests passed');

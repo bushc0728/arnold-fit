@@ -92,6 +92,14 @@ h3 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
 .chip.ago1 { background: rgba(255, 138, 61, .18); }
 
 .stack { display: flex; flex-direction: column; gap: 8px; }
+.dayline { display: flex; gap: 8px; align-items: stretch; }
+.dayline .dayrow { flex: 1; min-width: 0; }
+.movebtn { width: 76px; min-height: 68px; border-radius: 18px; background: #241820; border: 1px solid rgba(255, 80, 90, .45); color: #ffd0dc; font-weight: 800; font-size: 15px; }
+.move-today { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; margin-top: 12px; border-radius: 14px; background: #241820; border: 1px solid rgba(255, 80, 90, .45); color: #ffd0dc; font-weight: 800; }
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.act { min-height: 52px; border-radius: 14px; background: #101018; border: 1px solid var(--line); font-weight: 800; }
+.act.on, .choice.cur { outline: 2px solid #ff5a4e; }
+.hero.active:before { background: linear-gradient(90deg, #b98cff, #7aa2ff); }
 .dayrow {
   display: flex; align-items: center; gap: 12px; width: 100%;
   min-height: 68px; padding: 10px 12px; border-radius: 18px;

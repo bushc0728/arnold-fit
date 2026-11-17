@@ -93,7 +93,7 @@
   function openLog() { UI.logging = true; UI.tab = 'today'; render(); }
   function startDay(k, day) {
     if (!day || day.kind === 'rest') return;
-    if (day.kind === 'hockey') return logHockey(k, day);
+    if (day.kind === 'active' || day.kind === 'hockey') return openActive(k, day.kind === 'hockey' ? 'hockey' : null);
     if (S.active && S.active.date === k) return openLog();
     if (S.active && !confirm('Discard the open workout and start this one?')) return;
     const done = loggedOn(k);
@@ -108,20 +108,38 @@
     if (S.active && S.active.date === k) return openLog();
     startDay(k, AF.dayFor(PE, k));
   }
-  function logHockey(k, day) {
-    if (loggedOn(k) && loggedOn(k).code === 'HK') { toast('Hockey is already logged'); return; }
-    if (S.active && !confirm('Discard the open workout and log hockey?')) return;
+  const ACTS = { hockey: 'Hockey', mtb: 'Mountain bike', run: 'Run', other: 'Other' };
+  function openActive(k, preset) {
+    UI.editDate = k;
+    UI.act = preset || null;
+    UI.actMin = '';
+    UI.mode = 'active';
+    paintSheet();
+  }
+  function logActive() {
+    const k = UI.editDate || AF.today();
+    const id = UI.act;
+    if (!id || !ACTS[id]) { toast('Pick hockey, a ride, a run, or other'); return; }
+    const field = document.getElementById('actMin');
+    const raw = field ? field.value.trim() : (UI.actMin || '');
+    const mins = raw === '' ? null : Math.round(+raw);
+    if (raw !== '' && !(mins > 0 && mins < 600)) { toast('Check the minutes'); return; }
+    if (S.active && !confirm('Discard the open workout and log this?')) return;
     S.active = null;
+    const title = ACTS[id];
     const w = {
-      id: AF.uid(), date: k, sessionKey: k + ':HK', title: day.title || 'Hockey', kind: 'hockey', code: 'HK', place: 'off',
-      startedAt: Date.now(), endedAt: Date.now(), exercises: [], summary: { durMin: 0, sets: 0 },
+      id: AF.uid(), date: k, sessionKey: k + ':ACT-' + id, title: title, kind: 'active', code: 'ACT', place: 'off', activity: id,
+      startedAt: Date.now(), endedAt: Date.now(),
+      exercises: mins ? [{ ex: 'act_' + id, name: title, mode: 'min', sets: [{ w: null, r: mins, done: true }], planned: 1 }] : [],
+      summary: { durMin: mins || 0, sets: 0 },
     };
     S.workouts.push(w);
     undoId = w.id;
+    UI.mode = null;
     saveStore();
     haptic([16, 30, 16]);
     render();
-    toast('Hockey logged', true);
+    toast(title + ' logged', true);
   }
 
   function readLogInputs() {
@@ -200,7 +218,7 @@
     const n = AF.crunchSet(S, AF.weekStart(k)).size;
     const goal = AF.CRUNCH_GOAL;
     const pips = Array.from({ length: goal }, (_, i) => '<i class="' + (i < n ? 'on' : '') + '"></i>').join('');
-    const line = n >= goal ? 'Week made.' : n ? n + ' down, ' + (goal - n) + ' to go.' : 'Five gym days. The week is open.';
+    const line = n >= goal ? 'Week made.' : n ? n + ' down, ' + (goal - n) + ' to go.' : 'Four gym days. Sunday is separate.';
     const counted = AF.crunchSet(S, AF.weekStart(k)).has(k);
     return '<section class="card crunch"><div class="row"><h3>Crunch</h3><b>' + n + ' of ' + goal + '</b></div><div class="pips" aria-label="' + n + ' of ' + goal + ' Crunch visits">' + pips + '</div><p>' + line + (counted ? '' : ' <button class="inline" data-a="crunchVisit">I went</button>') + '</p></section>';
   }
@@ -236,8 +254,12 @@
       }).join('') + '</ul>';
     }
     const kicker = active ? 'In progress' : 'Today';
+    const mover = '<button class="move-today" data-a="moveTomorrow">Move to tomorrow</button>';
+    if (kind === 'active' && !done) {
+      list = '<div class="acts">' + Object.keys(ACTS).map(id => '<button class="act" data-a="openActive" data-act="' + id + '">' + ACTS[id] + '</button>').join('') + '</div>';
+    }
     return '<section class="hero ' + esc(kind) + '"><div class="eyebrow">' + kicker + '</div><h2>' + esc(day.title) + '</h2>'
-      + (day.note ? '<p class="lede">' + esc(day.note) + '</p>' : '') + list
+      + (day.note ? '<p class="lede">' + esc(day.note) + '</p>' : '') + mover + list
       + (kind === 'rest' ? '<button class="texty" data-a="trainAnyway">Train anyway</button>' : '')
       + '</section>';
   }
@@ -248,7 +270,7 @@
     if (S.active && S.active.date === k) return '<button class="go" data-a="resume">Resume workout</button>';
     if (loggedOn(k) && !(S.active && S.active.date === k)) return '';
     if (day.kind === 'rest') return '';
-    if (day.kind === 'hockey') return '<button class="go" data-a="start">Log hockey</button>';
+    if (day.kind === 'active' || day.kind === 'hockey') return '<button class="go" data-a="start">Log activity</button>';
     return '<button class="go" data-a="start">Start workout</button>';
   }
 
@@ -296,7 +318,7 @@
     const now = k === AF.today();
     const active = S.active && S.active.date === k;
     const sub = active ? 'In progress' : done ? 'Logged · ' + (done.title || day.title) : (day.items[0] ? AF.resolveEx(day.items[0].id, PE).n + (day.items.length > 1 ? ' · ' + (day.items.length - 1) + ' more' : '') : (day.note || 'Open'));
-    return '<button class="dayrow ' + (now ? 'now' : '') + (done ? ' did' : '') + '" data-a="openDay" data-date="' + k + '"><span class="datebox"><b>' + AF.DOW[AF.dowMon(k)] + '</b><span>' + AF.pkey(k).getDate() + '</span></span><span class="grow"><b>' + esc(day.title) + '</b><small>' + esc(sub) + '</small></span>' + (done ? '<span class="tick">' + CHECK + '</span>' : '<span class="chev">›</span>') + '</button>';
+    return '<div class="dayline"><button class="dayrow ' + (now ? 'now' : '') + (done ? ' did' : '') + '" data-a="openDay" data-date="' + k + '"><span class="datebox"><b>' + AF.DOW[AF.dowMon(k)] + '</b><span>' + AF.pkey(k).getDate() + '</span></span><span class="grow"><b>' + esc(day.title) + '</b><small>' + esc(sub) + '</small></span>' + (done ? '<span class="tick">' + CHECK + '</span>' : '<span class="chev">›</span>') + '</button><button class="movebtn" data-a="openMoveDay" data-date="' + k + '" aria-label="Move ' + AF.DOW[AF.dowMon(k)] + '">Move</button></div>';
   }
 
   function exerciseOptions() {
@@ -454,6 +476,7 @@
     if (UI.mode === 'swap') return swapHTML();
     if (UI.mode === 'planSwap') return planSwapHTML();
     if (UI.mode === 'train') return trainHTML();
+    if (UI.mode === 'active') return activeHTML();
     if (UI.mode === 'day') return dayHTML();
     if (UI.mode === 'move') return moveHTML();
     if (UI.mode === 'add') return addHTML();
@@ -500,8 +523,17 @@
     });
     return h + '<button class="texty" data-a="sheetBack">Cancel</button>';
   }
+  function activeHTML() {
+    let h = '<div class="grab"></div><h3>Active day</h3><p class="fine">Pick one. Minutes are optional.</p><div class="acts">';
+    Object.keys(ACTS).forEach(id => {
+      h += '<button class="act ' + (UI.act === id ? 'on' : '') + '" data-a="pickAct" data-act="' + id + '">' + ACTS[id] + '</button>';
+    });
+    h += '</div><label class="field">Minutes<input id="actMin" inputmode="numeric" placeholder="Optional" value="' + esc(UI.actMin || '') + '"></label>';
+    h += '<button class="go" data-a="logActive">Log it</button>';
+    return h;
+  }
   function trainHTML() {
-    const codes = ['UA', 'UB', 'LA', 'LB', 'REC', 'HK'];
+    const codes = ['PUSH', 'PULL', 'LEGS', 'ARMS', 'ACT'];
     let h = '<div class="grab"></div><h3>Train anyway</h3><p class="fine">Today only. The weekly plan stays put.</p>';
     codes.forEach(code => {
       const d = dayByCode(code);
@@ -517,17 +549,17 @@
     ensureEdit();
     const day = UI.edit, k = UI.editDate;
     let h = '<div class="grab"></div><p class="eyebrow">' + esc(AF.fmtLong(k)) + '</p><h3>' + esc(day.title) + '</h3>';
-    if (day.kind === 'rest' || day.kind === 'hockey') h += '<p class="lede">' + esc(day.note || '') + '</p>';
+    if (day.kind === 'rest' || day.kind === 'hockey' || day.kind === 'active') h += '<p class="lede">' + esc(day.note || '') + '</p>';
     h += '<div class="stack">';
     day.items.forEach((it, i) => {
       const lib = AF.resolveEx(it.id, PE);
       h += '<div class="editrow"><button class="grow" data-a="editItem" data-i="' + i + '"><b>' + esc(lib.n) + '</b><small>' + esc(AF.prescript(it, unit, PE)) + '</small></button><span class="nudges"><button data-a="moveItem" data-i="' + i + '" data-dir="-1" aria-label="Move up"' + (i ? '' : ' disabled') + '>↑</button><button data-a="moveItem" data-i="' + i + '" data-dir="1" aria-label="Move down"' + (i < day.items.length - 1 ? '' : ' disabled') + '>↓</button></span></div>';
     });
     h += '</div>';
-    if (day.kind !== 'rest' && day.kind !== 'hockey') h += '<button class="addset wide" data-a="openAdd">Add exercise</button>';
-    h += '<button class="choice" data-a="openMove"><b>Move this day</b><small>Swap with another day</small></button>';
+    if (day.kind === 'lift') h += '<button class="addset wide" data-a="openAdd">Add exercise</button>';
+    h += '<button class="choice" data-a="openMove"><b>Move to…</b><small>Swap with another day</small></button>';
     h += '<button class="go" data-a="applyEvery">Use this every ' + AF.DOW[AF.dowMon(k)] + '</button>';
-    h += '<button class="texty danger" data-a="resetDay">Reset this day to the 5-day plan</button>';
+    h += '<button class="texty danger" data-a="resetDay">Reset this weekday to the current plan</button>';
     return h;
   }
   function itemHTML() {
@@ -555,7 +587,7 @@
   function moveHTML() {
     const k = UI.editDate;
     const ws = AF.weekStart(k);
-    let h = '<div class="grab"></div><button class="texty left" data-a="sheetDay">‹ Day</button><h3>Swap ' + AF.DOW[AF.dowMon(k)] + '</h3>';
+    let h = '<div class="grab"></div>' + (UI.moveFromPlan ? '' : '<button class="texty left" data-a="sheetDay">‹ Day</button>') + '<h3>Move ' + AF.DOW[AF.dowMon(k)] + ' to…</h3>';
     h += '<div class="seg"><button class="' + (UI.every ? '' : 'on') + '" data-a="scope" data-v="0">This week</button><button class="' + (UI.every ? 'on' : '') + '" data-a="scope" data-v="1">Every week</button></div>';
     for (let i = 0; i < 7; i++) {
       const d = AF.addDays(ws, i);
@@ -736,7 +768,33 @@
       it.mode = lib.mode || 'sets';
       commitDay(); UI.mode = 'item'; render();
     },
-    openMove() { UI.mode = 'move'; paintSheet(); },
+    openMove() { UI.moveFromPlan = false; UI.mode = 'move'; paintSheet(); },
+    openMoveDay(el) {
+      UI.editDate = el.dataset.date;
+      UI.edit = AF.dayFor(PE, UI.editDate);
+      UI.every = false;
+      UI.moveFromPlan = true;
+      UI.mode = 'move';
+      paintSheet();
+    },
+    moveTomorrow() {
+      const k = AF.today();
+      const next = AF.addDays(k, 1);
+      const from = AF.dayFor(PE, k);
+      AF.swapDays(PE, k, next, false);
+      savePlan();
+      haptic(12);
+      toast(from.title + ' moved to ' + AF.DOW[AF.dowMon(next)]);
+      render();
+    },
+    openActive(el) { openActive(AF.today(), el && el.dataset.act); },
+    pickAct(el) {
+      const field = document.getElementById('actMin');
+      UI.actMin = field ? field.value : (UI.actMin || '');
+      UI.act = el.dataset.act;
+      paintSheet();
+    },
+    logActive() { logActive(); },
     scope(el) { UI.every = el.dataset.v === '1'; paintSheet(); },
     doMove(el) {
       AF.swapDays(PE, UI.editDate, el.dataset.date, !!UI.every);
